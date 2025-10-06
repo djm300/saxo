@@ -1,6 +1,8 @@
 params.json
 out.csv
 .DS_Store
+saxo_tokens.json
+saxo_tokens_sim.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

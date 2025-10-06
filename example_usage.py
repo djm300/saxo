@@ -9,9 +9,22 @@ from saxo_sdk.client import SaxoClient
 CLIENT_ID = os.environ.get("SAXO_CLIENT_ID", "c310e92ffc7c481190119ea98c507a2e") # Example from saxo-auth.py
 CLIENT_SECRET = os.environ.get("SAXO_CLIENT_SECRET", "67f8314ea810459e8ddc725a4cfd5568") # Example from saxo-auth.py
 REDIRECT_URI = os.environ.get("SAXO_REDIRECT_URI", "https://djm300.github.io/saxo/oauth-redirect.html")
-AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize")
-TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token")
-TOKEN_FILE = "saxo_tokens.json" # File to store tokens
+
+# --- Environment Configuration ---
+# Determine if running in simulation or live mode
+SIMULATION_MODE = os.environ.get("SIMULATION", "True").lower() == "true"
+
+# Define endpoints based on mode
+if SIMULATION_MODE:
+    AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize")
+    TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token")
+    TOKEN_FILE = "saxo_tokens_sim.json" # File to store simulation tokens
+    print("Running in SIMULATION mode.")
+else:
+    AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://live.logonvalidation.net/authorize")
+    TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://live.logonvalidation.net/token")
+    TOKEN_FILE = "saxo_tokens_live.json" # File to store live tokens
+    print("Running in LIVE mode.")
 
 # --- Main Execution ---
 def main():
@@ -32,7 +45,7 @@ def main():
         print("No valid token found or token expired. Initiating authorization flow.")
         auth_url = client.get_authorization_url()
         print(f"Please visit this URL in your browser to authorize the application:")
-        print(auth_url)
+        print(f"{auth_url}")
         
         # Prompt user to paste the authorization code received after redirection
         code = input("Paste the authorization code from the redirect URL here: ").strip()
