@@ -1,0 +1,8 @@
+{
+    "devaccount":"21326625",
+    "devpassword":"117b",
+    "app_key": "c310e92ffc7c481190119ea98c507a2e",
+    "auth_endpoint": "https://sim.logonvalidation.net/authorize",
+    "token_endpoint": "https://sim.logonvalidation.net/token",
+    "secret": "c310e92ffc7c481190119ea98c507a2e"
+}
