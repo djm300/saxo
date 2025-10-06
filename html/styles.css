@@ -1,0 +1,45 @@
+:root {
+    --background-color: #370013;
+    --header-color: #ffb347ef;
+    --content-color: #ffecd9;
+    --content-dim-color: #ffffff52;
+    --link-color: #ce9869;
+    --hover-color: #e8b68b;
+    --box-background-color: #694200;
+}
+
+@font-face {
+    font-family: header;
+    src: url("Sarabun/Sarabun-Light.ttf") format("truetype");
+}
+
+body {
+    max-width: 48em;
+}
+
+h1 {
+    font-size: 4em;
+}
+
+h2 {
+    font-size: 3em;
+}
+
+h3 {
+    font-size: 2em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: header;
+    color: var(--header-color);
+}
+
+footer {
+    font-size: 0.67em;
+    color: var(--content-dim-color);
+}
