@@ -3,6 +3,7 @@ out.csv
 .DS_Store
 saxo_tokens.json
 saxo_tokens_sim.json
+saxo_tokens_live.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

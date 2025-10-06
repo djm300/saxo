@@ -26,6 +26,11 @@ else:
     TOKEN_FILE = "saxo_tokens_live.json" # File to store live tokens
     print("Running in LIVE mode.")
 
+    CLIENT_ID = ''
+    CLIENT_ID = input("CLIENT_ID not set in environment. Please enter it: ")
+
+    CLIENT_SECRET = ''
+    CLIENT_SECRET = input("CLIENT_ID not set in environment. Please enter it: ")
 # --- Main Execution ---
 def main():
     print("Initializing SaxoClient...")
@@ -36,7 +41,7 @@ def main():
         auth_endpoint=AUTH_ENDPOINT,
         token_endpoint=TOKEN_ENDPOINT,
         token_file=TOKEN_FILE,
-        scope="trading portfolio" # Example scope, adjust as needed
+        scope="" # Empty string 
     )
 
     # --- Authentication Flow ---
