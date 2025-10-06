@@ -4,12 +4,13 @@ import hashlib
 import os
 
 class OAuth2Client:
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint):
+    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, redirect_uri=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.auth_endpoint = auth_endpoint
         self.token_endpoint = token_endpoint
+	self.redirect_uri = redirect_uri
 
     def _get_auth_url(self, **params):
         default_params = {
@@ -85,9 +86,9 @@ class ClientCredentialsClient(OAuth2Client):
 client = AuthorizationCodeClient(
     client_id="c310e92ffc7c481190119ea98c507a2e",
     client_secret="67f8314ea810459e8ddc725a4cfd5568",
-    redirect_uri="http://gttkeith.github.io/python-saxo/authcode",
     auth_endpoint="https://sim.logonvalidation.net/authorize",
-    token_endpoint="https://sim.logonvalidation.net/token"
+    token_endpoint="https://sim.logonvalidation.net/token",
+    redirect_uri="https://djm300.github.io/saxo/oauth-redirect.html"
 )
 
 # Get the authorization URL and redirect the user
@@ -104,4 +105,3 @@ code = "RECEIVED_CODE"
 client._generate_code_verifier()
 token_info = client.get_token(code)
 print(token_info)
-
