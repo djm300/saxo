@@ -20,12 +20,13 @@ logger = logging.getLogger(__name__)
 # Base OAuth2 Client
 # ==============================
 class OAuth2Client:
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint):
+    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.auth_endpoint = auth_endpoint
         self.token_endpoint = token_endpoint
+        self.baseurl = baseurl
 
     def _get_auth_url(self, **params):
         """Build authorization URL with provided parameters."""
@@ -69,8 +70,8 @@ def handle_oauth_errors(func):
 # Authorization Code + PKCE Client
 # ==============================
 class AuthorizationCodeClient(OAuth2Client):
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, token_file='tokens.json'):
-        super().__init__(client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint)
+    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl, token_file='tokens.json' ):
+        super().__init__(client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl)
         self.code_verifier = None
         self.code_challenge = None
         self.token_file = token_file

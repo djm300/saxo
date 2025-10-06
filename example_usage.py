@@ -83,49 +83,6 @@ def main():
     except Exception as e:
         print(f"Error fetching portfolio data: {e}")
 
-    # --- Orders Functionality Example ---
-    print("\n--- Placing a Sample Order ---")
-    # NOTE: This is a placeholder. Actual order details depend on SAXO API specifications.
-    # You would need to know the correct instrument IDs, order types, etc.
-    sample_order_details = {
-        "instrument_id": "YOUR_INSTRUMENT_ID", # e.g., "EURUSD" or a specific ID
-        "order_type": "LIMIT",
-        "price": 1.1000,
-        "quantity": 1000,
-        "side": "BUY"
-    }
-    
-    # To actually place an order, you'd need valid credentials and a real instrument ID.
-    # For this example, we'll just show how the method would be called.
-    print("Attempting to place a sample order (using placeholder data)...")
-    try:
-        # In a real scenario, you'd replace sample_order_details with actual data
-        # and uncomment the line below.
-        # placed_order = client.place_order(sample_order_details)
-        # print("Order placed successfully:")
-        # print(json.dumps(placed_order, indent=2))
-        
-        # For demonstration, we'll just print the placeholder response
-        print("Placeholder response for placing order:")
-        print(json.dumps({"message": "Order placed placeholder", "order_details": sample_order_details}, indent=2))
-
-        # Example of getting order status (requires a real order ID)
-        # print("\n--- Fetching Order Status ---")
-        # order_id_to_check = "example_order_id_from_response" # Replace with actual ID
-        # order_status = client.get_order_status(order_id_to_check)
-        # print(f"Status for order {order_id_to_check}:")
-        # print(json.dumps(order_status, indent=2))
-
-    except Exception as e:
-        print(f"Error during order placement or status check: {e}")
-
-    print("\n--- Fetching All Orders ---")
-    try:
-        all_orders = client.get_all_orders()
-        print("All Orders:")
-        print(json.dumps(all_orders, indent=2))
-    except Exception as e:
-        print(f"Error fetching all orders: {e}")
 
     print("\nSaxo SDK example usage finished.")
 
