@@ -83,6 +83,7 @@ class AuthorizationCodeClient(OAuth2Client):
         # Always refresh tokens
         if self.tokens:
             logger.info("Ignoring access token expired; attempting  refresh...")
+            logger.debug("Token details: " + json.dumps(self.tokens, indent=2))
             refreshed = self.refresh_token()
             if refreshed:
                 logger.info("Token refresh successful.")
@@ -95,14 +96,14 @@ class AuthorizationCodeClient(OAuth2Client):
     # --- PKCE helpers ---
     def _generate_code_verifier(self):
         verifier = base64.urlsafe_b64encode(os.urandom(64)).decode('utf-8').rstrip('=')
-        logger.debug(f"Generated code_verifier (len={len(verifier)})")
+        logger.debug(f"Generated code_verifier (len={len(verifier)}) "+verifier)
         self.code_verifier = verifier
         return verifier
 
     def _generate_code_challenge(self, verifier):
         digest = hashlib.sha256(verifier.encode('utf-8')).digest()
         challenge = base64.urlsafe_b64encode(digest).decode('utf-8').rstrip('=')
-        logger.debug("Generated code_challenge")
+        logger.debug("Generated code_challenge "+challenge)
         self.code_challenge = challenge
         return challenge
 
@@ -150,8 +151,8 @@ class AuthorizationCodeClient(OAuth2Client):
         params['code_challenge'] = code_challenge
         params['code_challenge_method'] = 'S256'
         url = self._get_auth_url(**params)
-        logger.info("Open this URL in a browser to authorize:")
-        logger.info(url)
+        logger.debug("Open this URL in a browser to authorize:")
+        logger.debug(url)
         return url
 
     @handle_oauth_errors
@@ -179,7 +180,8 @@ class AuthorizationCodeClient(OAuth2Client):
         })
 
         if response.status_code != 200:
-            logger.error(f"Token refresh failed ({response.status_code}): {response.text}")
+            logger.error(f"Token refresh failed ({response.status_code})")
+            logger.debug(f"Failed response: {response.text}")
             return None
 
         new_tokens = response.json()

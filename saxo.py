@@ -1,19 +1,23 @@
 import os
 import json
 from saxo_sdk.client import SaxoClient
+from saxo_sdk.formatter import CustomFormatter
 import logging
 
 # ==============================
 # Logging setup
 # ==============================
-logging.basicConfig(
-    level=logging.DEBUG,  # change to INFO for less output
-    format="[%(levelname)s] %(asctime)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
-logger = logging.getLogger(__name__)
-
-
+# send to root logger
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)  # Set to DEBUG for detailed output, change to INFO to reduce verbosity
+# Clear existing handlers (optional, avoids duplicates)
+logger.handlers.clear()
+# Create a console handler
+console_handler = logging.StreamHandler()
+# Define and set formatter with clean timestamp
+console_handler.setFormatter(CustomFormatter())
+# Add handler to logger
+logger.addHandler(console_handler)
 
 # --- Configuration ---
 # It's recommended to load sensitive information from environment variables or a config file
@@ -32,12 +36,12 @@ if SIMULATION_MODE:
     AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize")
     TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token")
     TOKEN_FILE = "saxo_tokens_sim.json" # File to store simulation tokens
-    logging.debug("Running in SIMULATION mode.")
+    logging.info("Running in SIMULATION mode.")
 else:
     AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://live.logonvalidation.net/authorize")
     TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://live.logonvalidation.net/token")
     TOKEN_FILE = "saxo_tokens_live.json" # File to store live tokens
-    logging.debug("Running in LIVE mode.")
+    logging.info("Running in LIVE mode.")
 
     CLIENT_ID = ''
     CLIENT_ID = input("CLIENT_ID not set in environment. Please enter it: ")
@@ -60,10 +64,10 @@ def main():
     # --- Authentication Flow ---
     # Check if tokens exist and are valid, otherwise initiate authorization
     if not client.auth_client.tokens or client.auth_client._is_expired():
-        print("No valid token found or token expired. Initiating authorization flow.")
+        logging.info("No valid token found or token expired. Initiating authorization flow.")
         auth_url = client.get_authorization_url()
-        print(f"Please visit this URL in your browser to authorize the application:")
-        print(f"{auth_url}")
+        logging.info(f"Please visit this URL in your browser to authorize the application:")
+        logging.info(f"{auth_url}")
         
         # Prompt user to paste the authorization code received after redirection
         code = input("Paste the authorization code from the redirect URL here: ").strip()
@@ -71,16 +75,16 @@ def main():
         if code:
             try:
                 token_data = client.get_token(code)
-                print("Authorization successful! Tokens acquired and saved.")
+                logging.info("Authorization successful! Tokens acquired and saved.")
                 # print(f"Access Token (first 20 chars): {token_data.get('access_token', '')[:20]}...")
             except Exception as e:
-                print(f"Error acquiring token: {e}")
+                logging.error(f"Error acquiring token: {e}")
                 return
         else:
-            print("No authorization code provided. Exiting.")
+            logging.error("No authorization code provided. Exiting.")
             return
     else:
-        print("Using existing valid access token.")
+        logging.info("Using existing valid access token.")
         # print(f"Access Token (first 20 chars): {client.auth_client.tokens.get('access_token', '')[:20]}...")
 
     # --- Portfolio Functionality Example ---
