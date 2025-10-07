@@ -23,6 +23,13 @@ console_handler.setFormatter(CustomFormatter())
 # Add handler to logger
 logger.addHandler(console_handler)
 
+# Create a file handler to write logs to a file
+file_handler = logging.FileHandler("app.log")  # you can change the filename/path
+file_handler.setLevel(logging.DEBUG)  # Set the level for file logging
+fileformatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s", datefmt="%H:%M:%S")
+file_handler.setFormatter(fileformatter)
+logger.addHandler(file_handler)
+
 
 # Load parameters from params.json if it exists
 def load_config_value(key, default=None, json_config=None):

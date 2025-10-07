@@ -10,12 +10,7 @@ import logging
 # ==============================
 # Logging setup
 # ==============================
-logging.basicConfig(
-    level=logging.DEBUG,  # change to INFO for less output
-    format="[%(levelname)s] %(asctime)s - %(message)s",
-    datefmt="%H:%M:%S"
-)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 
 # ==============================
 # Base OAuth2 Client
