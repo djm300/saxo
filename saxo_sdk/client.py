@@ -47,7 +47,12 @@ class SaxoClient:
         }
 
         try:
-            response = requests.request(method, url, headers=headers, data=data, params=params)
+            response = requests.request(method, url, headers=headers, json=data, params=params)
+            #logger.debug(f"API Request: {method} {url} - Status Code: {response.status_code}")
+            #logger.debug(f"Headers: {headers}   Data: {data}   Params: {params}")
+            #logger.debug(f"Response Text: {response.text}")
+            #logger.debug(f"Response Headers: {response.headers}")
+            #logger.debug(f"Response Content: {response.content}")
             response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -81,6 +86,18 @@ class SaxoClient:
         # Refactored to use the template method
         logger.info("Fetching positions via SaxoClient helper.")
         return self._make_api_request("GET", "/port/v1/positions/me")
+    
+
+    def get_accounts(self):
+        """Get current accounts."""
+        # Refactored to use the template method
+        logger.info("Fetching accounts via SaxoClient helper.")
+        return self._make_api_request("GET", "/port/v1/accounts/me")   
+
+    def get_instrument_by_uic(self,uic):
+        # Refactored to use the template method
+        logger.info("Fetching accounts via SaxoClient helper.")
+        return self._make_api_request("GET", f"/ref/v1/instruments/details/{uic}/Stock")         
 
     def place_order(self, order_details):
         """Place a new order."""
@@ -88,7 +105,7 @@ class SaxoClient:
         logger.info("Placing order via SaxoClient helper.")
         # Assuming order placement is a POST request to an orders endpoint
         # The exact endpoint needs to be confirmed from SAXO API docs
-        return self._make_api_request("POST", "/trade/v1/orders", data=order_details)
+        return self._make_api_request("POST", "/trade/v2/orders", data=order_details)
 
     def get_order_status(self, order_id):
         """Get the status of a specific order."""
