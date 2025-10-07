@@ -112,38 +112,6 @@ def main():
     )
 
 
-
-
-'''
-    # --- Authentication Flow ---
-    # Check if tokens exist and are valid, otherwise initiate authorization
-    if not client.auth_client.tokens or client.auth_client._is_access_token_expired():
-        logging.info("No valid token found or token expired. Initiating authorization flow.")
-        auth_url = client.get_authorization_url()
-        logging.info(f"Please visit this URL in your browser to authorize the application:")
-        logging.info(f"{auth_url}")
-        
-        # Prompt user to paste the authorization code received after redirection
-        code = input("Paste the authorization code from the redirect URL here: ").strip()
-        
-        if code:
-            try:
-                token_data = client.get_token(code)
-                logging.info("Authorization successful! Tokens acquired and saved.")
-                # print(f"Access Token (first 20 chars): {token_data.get('access_token', '')[:20]}...")
-            except Exception as e:
-                logging.error(f"Error acquiring token: {e}")
-                return
-        else:
-            logging.error("No authorization code provided. Exiting.")
-            return
-    else:
-        logging.info("Using existing valid access token.")
-        # print(f"Access Token (first 20 chars): {client.auth_client.tokens.get('access_token', '')[:20]}...")
-'''
-
-
-'''
     # --- Portfolio Functionality Example ---
     print("\n--- Fetching Portfolio ---")
     try:
@@ -156,9 +124,7 @@ def main():
         print(json.dumps(positions, indent=2))
     except Exception as e:
         print(f"Error fetching portfolio data: {e}")
-    */
 
-    print("\nSaxo SDK example usage finished.")
-'''
+
 if __name__ == "__main__":
     main()

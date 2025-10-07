@@ -124,7 +124,7 @@ class AuthorizationCodeClient(OAuth2Client):
                     logger.info("Token refresh successful.")
                 else:
                     logger.error("Automatic token refresh failed; user re-authorization required.")
-
+                    self.startAuthflow()
             expires_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.tokens.get("access_token_expires_at", 0)))
             logger.info(f"Access token valid until {expires_at}.")
         else:
@@ -200,8 +200,8 @@ class AuthorizationCodeClient(OAuth2Client):
             logger.error("No access_token_expires_at in token; treating as expired.")
             return True
 
-        # 30 minutes in seconds
-        min_validity = 30 * 60
+        # 10 minutes in seconds
+        min_validity = 10 * 60
 
         if (exp - time.time()) < min_validity:
             logger.info("Access token is expiring within 30 minutes; treating as expired.")
