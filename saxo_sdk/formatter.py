@@ -3,7 +3,7 @@ import logging
 # Define emojis for different log levels
 LOG_EMOJIS = {
     logging.DEBUG: "🐛",
-    logging.INFO: "💡",
+    logging.INFO: "✅",
     logging.WARNING: "⚠️",
     logging.ERROR: "❌",
     logging.CRITICAL: "🔥",
@@ -39,6 +39,7 @@ class CustomFormatter(logging.Formatter):
         log_message = (
             f"[{color_start}{record.levelname:<8}{RESET_COLOR}] "
             f"{color_start}{record.filename:<15}{RESET_COLOR}"
+            f"{color_start}{record.funcName:<15}{RESET_COLOR}"
             f"{timestamp} {emoji} - "
             f"{color_start}{record.getMessage()}{color_end}"
         )

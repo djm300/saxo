@@ -27,7 +27,7 @@ class SaxoClient:
         Helper method to make API requests.
         Handles base URL, authorization headers, and response parsing.
         """
-        if not self.auth_client.tokens or self.auth_client._is_expired():
+        if not self.auth_client.tokens or self.auth_client._is_access_token_expired():
             logger.warning("Token expired or not found. Attempting to refresh.")
             try:
                 self.refresh_token()

@@ -63,7 +63,7 @@ def main():
 
     # --- Authentication Flow ---
     # Check if tokens exist and are valid, otherwise initiate authorization
-    if not client.auth_client.tokens or client.auth_client._is_expired():
+    if not client.auth_client.tokens or client.auth_client._is_access_token_expired():
         logging.info("No valid token found or token expired. Initiating authorization flow.")
         auth_url = client.get_authorization_url()
         logging.info(f"Please visit this URL in your browser to authorize the application:")

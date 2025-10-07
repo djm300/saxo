@@ -6,6 +6,7 @@ import json
 import time
 import logging
 
+
 # ==============================
 # Logging setup
 # ==============================
@@ -50,6 +51,8 @@ class OAuth2Client:
             'redirect_uri': self.redirect_uri,
             'code_verifier': code_verifier
         })
+        logger.debug(f"Request: {response.request}")
+        logger.debug(f"curlify: {response.request}  ")
         logger.debug(f"Token endpoint status: {response.status_code}")
         response.raise_for_status()
         return response.json()
@@ -66,8 +69,11 @@ def handle_oauth_errors(func):
             return {"error": str(e)}
     return wrapper
 
-def token_lifetime_to_datetime(lifetime_seconds):
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + lifetime_seconds))
+def lifetime_seconds_to_datetime(lifetime_seconds):
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(lifetime_seconds))
+
+def relative_seconds_to_lifetime_seconds(seconds):
+    return int(time.time()) + int(seconds)
 
 # ==============================
 # Authorization Code + PKCE Client
@@ -80,17 +86,31 @@ class AuthorizationCodeClient(OAuth2Client):
         self.token_file = token_file
         self.tokens = self._load_tokens() or {}
 
-        # Always refresh tokens
+        # Check if token is expired and attempt refresh
         if self.tokens:
-            logger.info("Ignoring access token expired; attempting  refresh...")
-            logger.debug("Token details: " + json.dumps(self.tokens, indent=2))
-            refreshed = self.refresh_token()
-            if refreshed:
-                logger.info("Token refresh successful.")
+            # Log token expiry details
+            # Check if they exist first
+            if 'access_token_expires_at' in self.tokens:
+                logger.debug(f"Access token expiry at {lifetime_seconds_to_datetime(self.tokens.get('access_token_expires_at', 0))}")
             else:
-                logger.warning("Automatic token refresh failed; user re-authorization required.")
-        elif self.tokens:
-            expires_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.tokens.get("expires_at", 0)))
+                logger.error("No access_token_expires_at found in tokens.")
+            if 'refresh_token_expires_at' in self.tokens:
+                logger.debug(f"Refresh token expiry at {lifetime_seconds_to_datetime(self.tokens.get('refresh_token_expires_at', 0))}")
+            else:
+                logger.error("No refresh_token_expires_at found in tokens.")
+
+            # Check expiration
+            if self._is_access_token_expired():
+                # Assume refresh_token is present and valid
+                refreshed = self.refresh_token()
+                if refreshed:
+                    logger.info("Token refresh successful.")
+                else:
+                    logger.warning("Automatic token refresh failed; user re-authorization required.")
+
+            else:
+                logger.info("Existing token is valid.")
+            expires_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.tokens.get("access_token_expires_at", 0)))
             logger.info(f"Loaded existing token, valid until {expires_at}.")
 
     # --- PKCE helpers ---
@@ -108,10 +128,32 @@ class AuthorizationCodeClient(OAuth2Client):
         return challenge
 
     # --- Token storage ---
+    # Since expires_in is relative, we compute absolute expiry time when saving
+    # and store that as access_token_expires_at (epoch seconds).
+    # and remove expires_in from the stored data.
+    # same for refresh_token_expires_in.
     def _save_tokens(self, token_data):
         """Save tokens to file, computing absolute expiry timestamp."""
         if 'expires_in' in token_data:
-            token_data['expires_at'] = int(time.time()) + int(token_data['expires_in'])
+            logger.debug("Saving new access token...")
+            logger.debug("Current time: "+str(int(time.time())))
+            logger.debug("Relative expires_in: "+str(int(token_data['expires_in'])))
+            logger.debug("Computed access_token_expires_at: "+str(int(time.time()) + int(token_data['expires_in'])))
+            logger.debug("Access token expiry at "+lifetime_seconds_to_datetime(int(time.time()) + int(token_data['expires_in'])))
+            token_data['access_token_expires_at'] = int(time.time()) + int(token_data['expires_in'])
+            token_data.pop('expires_in', None)
+
+        if 'refresh_token_expires_in' in token_data:
+            logger.debug("Saving new refresh token...")
+            logger.debug("Current time: "+str(int(time.time())))
+            logger.debug("Relative refresh_token_expires_in: "+str(int(token_data['refresh_token_expires_in'])))
+            logger.debug("Computed refresh_token_expires_in: "+str(int(time.time()) + int(token_data['refresh_token_expires_in'])))
+            logger.debug("Refresh token expiry at "+lifetime_seconds_to_datetime(int(time.time()) + int(token_data['refresh_token_expires_in'])))
+            token_data['refresh_token_expires_at'] = int(time.time()) + int(token_data['refresh_token_expires_in'])
+            token_data.pop('refresh_token_expires_in', None)
+
+
+
         with open(self.token_file, 'w') as f:
             json.dump(token_data, f, indent=2)
         os.chmod(self.token_file, 0o600)
@@ -131,15 +173,35 @@ class AuthorizationCodeClient(OAuth2Client):
             logger.error(f"Failed to load tokens: {e}")
             return None
 
-    def _is_expired(self, skew=30):
+    def _is_access_token_expired(self, skew=30):
         """Return True if the access token is expired (with a small time skew)."""
-        exp = self.tokens.get('expires_at')
+        exp = self.tokens.get('access_token_expires_at')
         if not exp:
-            logger.debug("No expires_at in token; treating as expired.")
+            logger.error("No access_token_expires_at in token; treating as expired.")
             return True
         expired = (time.time() + skew) >= exp
-        logger.debug(f"Token expiry check: now={time.time()}, expires_at={exp}, expired={expired}")
+        logger.debug(f"Access token expiry check: now={time.time()}, expires_at={exp}, expired={expired}")
+        if expired:
+            logger.warning("Access token is expired or about to expire.")
+        else:
+            logger.info("Access token is still valid.")
         return expired
+
+
+    def _is_refresh_token_expired(self, skew=30):
+        """Return True if the refresh  token is expired (with a small time skew)."""
+        exp = self.tokens.get('refresh_token_expires_at')
+        if not exp:
+            logger.debug("No refresh_token_expires_at in token; treating as expired.")
+            return True
+        expired = (time.time() + skew) >= exp
+        logger.debug(f"Refresh Token expiry check: now={time.time()}, expires_at={exp}, expired={expired}")
+        if expired:
+            logger.warning("Refresh token is expired or about to expire.")
+        else:
+            logger.info("Refresh token is still valid.")
+        return expired
+
 
     # --- Authorization flow ---
     @handle_oauth_errors
@@ -159,6 +221,11 @@ class AuthorizationCodeClient(OAuth2Client):
     def get_token(self, code):
         """Exchange authorization code for tokens."""
         token_data = self._exchange_for_token(code, self.code_verifier)
+        if token_data is None:
+            logger.error("Token exchange failed; no token data received.")
+            return None
+        else:
+            token_data['code_verifier'] = self.code_verifier
         self._save_tokens(token_data)
         return token_data
 
@@ -167,17 +234,29 @@ class AuthorizationCodeClient(OAuth2Client):
     def refresh_token(self):
         """Refresh the access token using stored refresh token."""
         refresh_token = self.tokens.get('refresh_token')
+        code_verifier = self.tokens.get('code_verifier')
+        refresh_token_expiration = self.tokens.get('refresh_token_expires_at')
+
         if not refresh_token:
             logger.warning("No refresh token available.")
+            return None
+
+        if self._is_refresh_token_expired():
+            logger.warning("Refresh token is expired; cannot refresh access token.")
             return None
 
         logger.debug("Attempting token refresh...")
         response = requests.post(self.token_endpoint, data={
             'grant_type': 'refresh_token',
             'refresh_token': refresh_token,
-            'client_id': self.client_id,
-            'client_secret': self.client_secret
+            'code_verifier': code_verifier
         })
+        logger.debug(f"Request: {response.request}")
+        logger.debug(f"Content: {response.content}")
+        logger.debug(f"Response text: {response.text}")
+        import curlify
+        logger.debug(f"cURL: {curlify.to_curl(response.request)}")
+        logger.debug(f"Refresh token endpoint status: {response.status_code}")
 
         if response.status_code != 200:
             logger.error(f"Token refresh failed ({response.status_code})")
@@ -191,11 +270,11 @@ class AuthorizationCodeClient(OAuth2Client):
             return None
 
         if 'refresh_token' in new_tokens:
-            new_tokens['expires_at'] = int(time.time()) + int(new_tokens.get('refresh_token_expires_in', 3600))
+            new_tokens['refresexpires_at'] = int(time.time()) + int(new_tokens.get('refresh_token_expires_in', 3600))
             logging.debug("Refresh token used for new access token.")
             logging.debug("f{new_tokens}")
             logging.debug("Refresh token expiry updated.")
-            logging.debug(f"New access token expires at {token_lifetime_to_datetime(new_tokens['expires_at'])})")
+            logging.debug(f"New access token expires at {lifetime_seconds_to_datetime(new_tokens['expires_at'])})")
 
             self._save_tokens(new_tokens)
             return new_tokens
