@@ -5,5 +5,5 @@
     "token_endpoint": "https://sim.logonvalidation.net/token",
     "CLIENT_ID": "89da08eeb25c428a9099f768cdb1696e",
     "REDIRECT_URI": "https://djm300.github.io/saxo/oauth-redirect.html",
-    "SIMULATION_MODE": "False"
+    "SIMULATION_MODE": "True"
 }
