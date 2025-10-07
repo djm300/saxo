@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 # Base OAuth2 Client
 # ==============================
 class OAuth2Client:
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl):
+    def __init__(self, client_id, redirect_uri, auth_endpoint, token_endpoint, baseurl):
         self.client_id = client_id
-        self.client_secret = client_secret
         self.redirect_uri = redirect_uri
         self.auth_endpoint = auth_endpoint
         self.token_endpoint = token_endpoint
@@ -45,7 +44,6 @@ class OAuth2Client:
         logger.debug("Exchanging authorization code for token...")
         response = requests.post(self.token_endpoint, data={
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
             'grant_type': 'authorization_code',
             'code': code,
             'redirect_uri': self.redirect_uri,
@@ -91,8 +89,19 @@ def relative_seconds_to_lifetime_seconds(seconds):
 # Authorization Code + PKCE Client
 # ==============================
 class AuthorizationCodeClient(OAuth2Client):
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl, token_file='tokens.json' ):
-        super().__init__(client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, baseurl)
+
+
+    def startAuthflow(self):
+        """Start the OAuth2 authorization flow."""
+        auth_url = self.get_authorization_url()
+        print(f"Please go to the following URL and authorize the application:\n{auth_url}")
+        code = input("Enter the authorization code provided by Saxo: ")
+        tokens = self.get_token(code)
+        logger.info("Authorization flow completed and tokens obtained.")
+        return tokens
+        
+    def __init__(self, client_id, redirect_uri, auth_endpoint, token_endpoint, baseurl, token_file='tokens.json' ):
+        super().__init__(client_id, redirect_uri, auth_endpoint, token_endpoint, baseurl)
         self.code_verifier = None
         self.code_challenge = None
         self.token_file = token_file
@@ -113,17 +122,21 @@ class AuthorizationCodeClient(OAuth2Client):
 
             # Check expiration
             if self._is_access_token_expired():
+                logger.error("Access token is expired; attempting to refresh.")
                 # Assume refresh_token is present and valid
                 refreshed = self.refresh_token()
                 if refreshed:
                     logger.info("Token refresh successful.")
                 else:
-                    logger.warning("Automatic token refresh failed; user re-authorization required.")
+                    logger.error("Automatic token refresh failed; user re-authorization required.")
 
-            else:
-                logger.info("Existing token is valid.")
             expires_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.tokens.get("access_token_expires_at", 0)))
-            logger.info(f"Loaded existing token, valid until {expires_at}.")
+            logger.info(f"Access token valid until {expires_at}.")
+        else:
+            logger.info("No existing tokens found; starting user authorization.")
+            self.startAuthflow()
+
+
 
     # --- PKCE helpers ---
     def _generate_code_verifier(self):
@@ -191,12 +204,15 @@ class AuthorizationCodeClient(OAuth2Client):
         if not exp:
             logger.error("No access_token_expires_at in token; treating as expired.")
             return True
+
+        # 30 minutes in seconds
+        min_validity = 30 * 60
+
+        if (exp - time.time()) < min_validity:
+            logger.info("Access token is expiring within 30 minutes; treating as expired.")
+            return True
+
         expired = (time.time() + skew) >= exp
-        logger.debug(f"Access token expiry check: now={time.time()}, expires_at={exp}, expired={expired}")
-        if expired:
-            logger.warning("Access token is expired or about to expire.")
-        else:
-            logger.info("Access token is still valid.")
         return expired
 
 
@@ -207,16 +223,10 @@ class AuthorizationCodeClient(OAuth2Client):
             logger.debug("No refresh_token_expires_at in token; treating as expired.")
             return True
         expired = (time.time() + skew) >= exp
-        logger.debug(f"Refresh Token expiry check: now={time.time()}, expires_at={exp}, expired={expired}")
-        if expired:
-            logger.warning("Refresh token is expired or about to expire.")
-        else:
-            logger.info("Refresh token is still valid.")
         return expired
 
 
     # --- Authorization flow ---
-    @handle_oauth_errors
     def get_authorization_url(self, **params):
         """Return an authorization URL for the user to visit."""
         code_verifier = self._generate_code_verifier()
@@ -229,7 +239,6 @@ class AuthorizationCodeClient(OAuth2Client):
         logger.debug(url)
         return url
 
-    @handle_oauth_errors
     def get_token(self, code):
         """Exchange authorization code for tokens."""
         token_data = self._exchange_for_token(code, self.code_verifier)
@@ -242,13 +251,10 @@ class AuthorizationCodeClient(OAuth2Client):
         return token_data
 
     # --- Refresh flow ---
-    @handle_oauth_errors
     def refresh_token(self):
         """Refresh the access token using stored refresh token."""
         refresh_token = self.tokens.get('refresh_token')
         code_verifier = self.tokens.get('code_verifier')
-        client_id = "c310e92ffc7c481190119ea98c507a2e"
-        refresh_token_expiration = self.tokens.get('refresh_token_expires_at')
 
         if not refresh_token:
             logger.warning("No refresh token available.")
@@ -280,7 +286,7 @@ class AuthorizationCodeClient(OAuth2Client):
         logger.debug("Request as cURL: %s", curlify.to_curl(response.request))
 
 
-        if response.status_code != 200:
+        if response.status_code != 200 and response.status_code != 201:
             logger.error(f"Token refresh failed ({response.status_code})")
             logger.debug(f"Failed response: {response.text}")
             return None
@@ -288,15 +294,15 @@ class AuthorizationCodeClient(OAuth2Client):
         new_tokens = response.json()
         if 'refresh_token' not in new_tokens:
             # Some providers return only new access_token
+            logger.warning("No new refresh token received; retaining old refresh token.")
             new_tokens['refresh_token'] = refresh_token
             return None
 
         if 'refresh_token' in new_tokens:
-            new_tokens['refresexpires_at'] = int(time.time()) + int(new_tokens.get('refresh_token_expires_in', 3600))
-            logging.debug("Refresh token used for new access token.")
-            logging.debug("f{new_tokens}")
-            logging.debug("Refresh token expiry updated.")
-            logging.debug(f"New access token expires at {lifetime_seconds_to_datetime(new_tokens['expires_at'])})")
+            logger.info("Received new refresh token.")
+            new_tokens['refresh_token_expires_at'] = int(time.time()) + int(new_tokens.get('refresh_token_expires_in', 3600))
+            new_tokens.pop('refresh_token_expires_in', None)
+            logging.debug(f"New refresh token expires at {lifetime_seconds_to_datetime(new_tokens['refresh_token_expires_at'])}")
 
             self._save_tokens(new_tokens)
             return new_tokens

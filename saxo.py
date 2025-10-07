@@ -3,6 +3,10 @@ import json
 from saxo_sdk.client import SaxoClient
 from saxo_sdk.formatter import CustomFormatter
 import logging
+import json
+
+
+
 
 # ==============================
 # Logging setup
@@ -19,17 +23,60 @@ console_handler.setFormatter(CustomFormatter())
 # Add handler to logger
 logger.addHandler(console_handler)
 
-# --- Configuration ---
-# It's recommended to load sensitive information from environment variables or a config file
-# For demonstration purposes, we'll use placeholders.
-# In a real application, you would replace these with your actual SAXO API credentials.
-CLIENT_ID = os.environ.get("SAXO_CLIENT_ID", "c310e92ffc7c481190119ea98c507a2e") # Example from saxo-auth.py
-CLIENT_SECRET = os.environ.get("SAXO_CLIENT_SECRET", "67f8314ea810459e8ddc725a4cfd5568") # Example from saxo-auth.py
-REDIRECT_URI = os.environ.get("SAXO_REDIRECT_URI", "https://djm300.github.io/saxo/oauth-redirect.html")
+
+# Load parameters from params.json if it exists
+def load_config_value(key, default=None, json_config=None):
+    # 1. Try environment variable
+    value = os.environ.get(key)
+    if value:
+        logger.debug(f"Loaded {key}={value} from environment variable.")
+        return value
+    # 2. Try JSON config
+    if json_config and key in json_config:
+        value =  json_config[key]
+        logger.debug(f"Loaded {key}={value} from params.json.")
+        return value
+    # 3. Fallback to default
+    logger.debug(f"Using default value {key}={default}.")
+    return default
+
+def load_config():
+    json_config = {}
+    try:
+        with open("params.json", "r") as f:
+            json_config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass  # Silently skip if params.json is missing or invalid
+
+    CLIENT_ID = load_config_value(
+        "CLIENT_ID", 
+        default="c310e92ffc7c481190119ea98c507a2e", 
+        json_config=json_config
+    )
+    REDIRECT_URI = load_config_value(
+        "REDIRECT_URI", 
+        default="https://djm300.github.io/saxo/oauth-redirect.html", 
+        json_config=json_config
+    ),
+    SIMULATION_MODE = load_config_value(
+        "SIMULATION_MODE", 
+        default=True, 
+        json_config=json_config
+    )
+    return CLIENT_ID, REDIRECT_URI, SIMULATION_MODE
+
+CLIENT_ID, REDIRECT_URI, SIMULATION_MODE = load_config()
+
+if isinstance(REDIRECT_URI, tuple):
+    REDIRECT_URI = REDIRECT_URI[0]  # Unpack if it's a single-element tuple
+
 
 # --- Environment Configuration ---
 # Determine if running in simulation or live mode
-SIMULATION_MODE = os.environ.get("SIMULATION", "True").lower() == "true"
+if SIMULATION_MODE != "False":
+    SIMULATION_MODE = True
+else:
+    SIMULATION_MODE = False
 
 # Define endpoints based on mode
 if SIMULATION_MODE:
@@ -43,23 +90,24 @@ else:
     TOKEN_FILE = "saxo_tokens_live.json" # File to store live tokens
     logging.info("Running in LIVE mode.")
 
-    CLIENT_ID = ''
-    CLIENT_ID = input("CLIENT_ID not set in environment. Please enter it: ")
+#CLIENT_ID = ''
+#CLIENT_ID = input("CLIENT_ID not set in environment. Please enter it: ")
 
-    CLIENT_SECRET = ''
-    CLIENT_SECRET = input("CLIENT_ID not set in environment. Please enter it: ")
 # --- Main Execution ---
 def main():
     logging.info("Initializing SaxoClient...")
     client = SaxoClient(
         client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
         redirect_uri=REDIRECT_URI,
         auth_endpoint=AUTH_ENDPOINT,
         token_endpoint=TOKEN_ENDPOINT,
         token_file=TOKEN_FILE
     )
 
+
+
+
+'''
     # --- Authentication Flow ---
     # Check if tokens exist and are valid, otherwise initiate authorization
     if not client.auth_client.tokens or client.auth_client._is_access_token_expired():
@@ -85,9 +133,11 @@ def main():
     else:
         logging.info("Using existing valid access token.")
         # print(f"Access Token (first 20 chars): {client.auth_client.tokens.get('access_token', '')[:20]}...")
+'''
 
+
+'''
     # --- Portfolio Functionality Example ---
-    '''
     print("\n--- Fetching Portfolio ---")
     try:
         portfolio = client.get_portfolio()
@@ -102,7 +152,6 @@ def main():
     */
 
     print("\nSaxo SDK example usage finished.")
-    '''
-
+'''
 if __name__ == "__main__":
     main()

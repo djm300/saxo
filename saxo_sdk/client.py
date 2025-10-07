@@ -7,11 +7,10 @@ logger = logging.getLogger(__name__)
 from .auth import AuthorizationCodeClient
 
 class SaxoClient:
-    def __init__(self, client_id, client_secret, redirect_uri, auth_endpoint, token_endpoint, token_file='tokens.json', scope="required_scope", baseurl="https://gateway.saxobank.com/sim/openapi"):
+    def __init__(self, client_id, redirect_uri, auth_endpoint, token_endpoint, token_file='tokens.json', scope="required_scope", baseurl="https://gateway.saxobank.com/sim/openapi"):
         """Initialize the SaxoClient with authentication and service clients."""
         self.auth_client = AuthorizationCodeClient(
             client_id=client_id,
-            client_secret=client_secret,
             redirect_uri=redirect_uri,
             auth_endpoint=auth_endpoint,
             token_endpoint=token_endpoint,
@@ -21,6 +20,8 @@ class SaxoClient:
         # Saxo doesn't use Oauth scopes in the traditional sense, but we include it for compatibility
         self.scope = scope
         logger.info("SaxoClient initialized.")
+
+
 
     def _make_api_request(self, method, endpoint, data=None, params=None):
         """
