@@ -51,9 +51,21 @@ class OAuth2Client:
             'redirect_uri': self.redirect_uri,
             'code_verifier': code_verifier
         })
-        logger.debug(f"Request: {response.request}")
-        logger.debug(f"curlify: {response.request}  ")
         logger.debug(f"Token endpoint status: {response.status_code}")
+
+
+        logger.debug("Request Details:\n"
+                    "    URL: %s\n"
+                    "    Method: %s\n"
+                    "    Headers: %s\n"
+                    "    Body: %s",
+                    response.request.url,
+                    response.request.method,
+                    response.request.headers,
+                    response.request.body)
+        import curlify
+        logger.debug("Request as cURL: %s", curlify.to_curl(response.request))
+
         response.raise_for_status()
         return response.json()
 
@@ -235,6 +247,7 @@ class AuthorizationCodeClient(OAuth2Client):
         """Refresh the access token using stored refresh token."""
         refresh_token = self.tokens.get('refresh_token')
         code_verifier = self.tokens.get('code_verifier')
+        client_id = "c310e92ffc7c481190119ea98c507a2e"
         refresh_token_expiration = self.tokens.get('refresh_token_expires_at')
 
         if not refresh_token:
@@ -251,12 +264,21 @@ class AuthorizationCodeClient(OAuth2Client):
             'refresh_token': refresh_token,
             'code_verifier': code_verifier
         })
-        logger.debug(f"Request: {response.request}")
-        logger.debug(f"Content: {response.content}")
-        logger.debug(f"Response text: {response.text}")
-        import curlify
-        logger.debug(f"cURL: {curlify.to_curl(response.request)}")
         logger.debug(f"Refresh token endpoint status: {response.status_code}")
+
+
+        logger.debug("Request Details:\n"
+                    "    URL: %s\n"
+                    "    Method: %s\n"
+                    "    Headers: %s\n"
+                    "    Body: %s",
+                    response.request.url,
+                    response.request.method,
+                    response.request.headers,
+                    response.request.body)
+        import curlify
+        logger.debug("Request as cURL: %s", curlify.to_curl(response.request))
+
 
         if response.status_code != 200:
             logger.error(f"Token refresh failed ({response.status_code})")

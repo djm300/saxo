@@ -57,8 +57,7 @@ def main():
         redirect_uri=REDIRECT_URI,
         auth_endpoint=AUTH_ENDPOINT,
         token_endpoint=TOKEN_ENDPOINT,
-        token_file=TOKEN_FILE,
-        scope="" # Empty string 
+        token_file=TOKEN_FILE
     )
 
     # --- Authentication Flow ---
