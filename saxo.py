@@ -1,6 +1,19 @@
 import os
 import json
 from saxo_sdk.client import SaxoClient
+import logging
+
+# ==============================
+# Logging setup
+# ==============================
+logging.basicConfig(
+    level=logging.DEBUG,  # change to INFO for less output
+    format="[%(levelname)s] %(asctime)s - %(message)s",
+    datefmt="%H:%M:%S"
+)
+logger = logging.getLogger(__name__)
+
+
 
 # --- Configuration ---
 # It's recommended to load sensitive information from environment variables or a config file
@@ -19,12 +32,12 @@ if SIMULATION_MODE:
     AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize")
     TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token")
     TOKEN_FILE = "saxo_tokens_sim.json" # File to store simulation tokens
-    print("Running in SIMULATION mode.")
+    logging.debug("Running in SIMULATION mode.")
 else:
     AUTH_ENDPOINT = os.environ.get("SAXO_AUTH_ENDPOINT", "https://live.logonvalidation.net/authorize")
     TOKEN_ENDPOINT = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://live.logonvalidation.net/token")
     TOKEN_FILE = "saxo_tokens_live.json" # File to store live tokens
-    print("Running in LIVE mode.")
+    logging.debug("Running in LIVE mode.")
 
     CLIENT_ID = ''
     CLIENT_ID = input("CLIENT_ID not set in environment. Please enter it: ")
@@ -33,7 +46,7 @@ else:
     CLIENT_SECRET = input("CLIENT_ID not set in environment. Please enter it: ")
 # --- Main Execution ---
 def main():
-    print("Initializing SaxoClient...")
+    logging.info("Initializing SaxoClient...")
     client = SaxoClient(
         client_id=CLIENT_ID,
         client_secret=CLIENT_SECRET,
@@ -71,6 +84,7 @@ def main():
         # print(f"Access Token (first 20 chars): {client.auth_client.tokens.get('access_token', '')[:20]}...")
 
     # --- Portfolio Functionality Example ---
+    '''
     print("\n--- Fetching Portfolio ---")
     try:
         portfolio = client.get_portfolio()
@@ -82,9 +96,10 @@ def main():
         print(json.dumps(positions, indent=2))
     except Exception as e:
         print(f"Error fetching portfolio data: {e}")
-
+    */
 
     print("\nSaxo SDK example usage finished.")
+    '''
 
 if __name__ == "__main__":
     main()

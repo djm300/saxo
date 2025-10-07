@@ -66,6 +66,9 @@ def handle_oauth_errors(func):
             return {"error": str(e)}
     return wrapper
 
+def token_lifetime_to_datetime(lifetime_seconds):
+    return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + lifetime_seconds))
+
 # ==============================
 # Authorization Code + PKCE Client
 # ==============================
@@ -77,9 +80,9 @@ class AuthorizationCodeClient(OAuth2Client):
         self.token_file = token_file
         self.tokens = self._load_tokens() or {}
 
-        # Auto-refresh if tokens are expired
-        if self.tokens and self._is_expired():
-            logger.info("Access token expired; attempting automatic refresh...")
+        # Always refresh tokens
+        if self.tokens:
+            logger.info("Ignoring access token expired; attempting  refresh...")
             refreshed = self.refresh_token()
             if refreshed:
                 logger.info("Token refresh successful.")
@@ -183,5 +186,14 @@ class AuthorizationCodeClient(OAuth2Client):
         if 'refresh_token' not in new_tokens:
             # Some providers return only new access_token
             new_tokens['refresh_token'] = refresh_token
-        self._save_tokens(new_tokens)
-        return new_tokens
+            return None
+
+        if 'refresh_token' in new_tokens:
+            new_tokens['expires_at'] = int(time.time()) + int(new_tokens.get('refresh_token_expires_in', 3600))
+            logging.debug("Refresh token used for new access token.")
+            logging.debug("f{new_tokens}")
+            logging.debug("Refresh token expiry updated.")
+            logging.debug(f"New access token expires at {token_lifetime_to_datetime(new_tokens['expires_at'])})")
+
+            self._save_tokens(new_tokens)
+            return new_tokens
