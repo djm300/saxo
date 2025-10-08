@@ -5,6 +5,7 @@ import os
 import json
 import time
 import logging
+import threading
 
 
 # ==============================
@@ -115,6 +116,9 @@ class AuthorizationCodeClient(OAuth2Client):
             else:
                 logger.error("No refresh_token_expires_at found in tokens.")
 
+            # The below would automatically start the auth flow on init, but we want to control when that happens.
+
+            '''
             # Check expiration
             if self._is_access_token_expired():
                 logger.error("Access token is expired; attempting to refresh.")
@@ -129,8 +133,9 @@ class AuthorizationCodeClient(OAuth2Client):
             logger.info(f"Access token valid until {expires_at}.")
         else:
             logger.info("No existing tokens found; starting user authorization.")
-            self.startAuthflow()
-
+            
+            #self.startAuthflow()
+            '''
 
 
     # --- PKCE helpers ---
@@ -193,22 +198,20 @@ class AuthorizationCodeClient(OAuth2Client):
             logger.error(f"Failed to load tokens: {e}")
             return None
 
-    def _is_access_token_expired(self, skew=30):
+    def _is_access_token_expired(self, skew=600):
         """Return True if the access token is expired (with a small time skew)."""
+        # 10 minutes = 600 seconds
+        # min_validity = 10 * 60
+
         exp = self.tokens.get('access_token_expires_at')
-        if not exp:
-            logger.error("No access_token_expires_at in token; treating as expired.")
+
+        if (exp - time.time()) < skew:
+            logger.info("Access token is expiring soon or has expired; treating as expired.")
             return True
+        else:
+            logger.debug(f"Access token valid until {lifetime_seconds_to_datetime(exp)}")
+            return False
 
-        # 10 minutes in seconds
-        min_validity = 10 * 60
-
-        if (exp - time.time()) < min_validity:
-            logger.info("Access token is expiring within 30 minutes; treating as expired.")
-            return True
-
-        expired = (time.time() + skew) >= exp
-        return expired
 
 
     def _is_refresh_token_expired(self, skew=30):
@@ -245,7 +248,10 @@ class AuthorizationCodeClient(OAuth2Client):
         self._save_tokens(token_data)
         return token_data
 
+
     # --- Refresh flow ---
+    # attempt to refresh the access token using the stored refresh token
+    # if successful, save the new tokens
     def refresh_token(self):
         """Refresh the access token using stored refresh token."""
         refresh_token = self.tokens.get('refresh_token')

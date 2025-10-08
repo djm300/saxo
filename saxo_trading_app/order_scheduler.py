@@ -5,15 +5,13 @@ from datetime import datetime, timedelta
 
 # Assuming saxo_sdk is accessible in the Python path
 from saxo_sdk.client import SaxoClient
-from .config import config
-
+from .config import Config
 logger = logging.getLogger()
 
 
 class OrderScheduler:
-    def __init__(self, token_manager: TokenManager):
-        self.token_manager = token_manager
-        self.saxo_client = token_manager.saxo_client # Access SaxoClient from TokenManager
+    def __init__(self, client: SaxoClient, config: Config):
+        self.saxo_client = client # Access SaxoClient
         self.order_schedule_time_str = config.ORDER_SCHEDULE_TIME
         self.order_details = config.ORDER_DETAILS
         self._scheduler_thread = None
@@ -31,15 +29,19 @@ class OrderScheduler:
 
     def _schedule_loop(self):
         while not self._stop_event.is_set():
+
+            # Calculate next schedule_time
             now = datetime.now()
             schedule_time = datetime.strptime(self.order_schedule_time_str, "%H:%M").replace(
                 year=now.year, month=now.month, day=now.day
             )
 
+            # Check if the scheduled time has already passed today
             if now > schedule_time:
                 # If the scheduled time for today has passed, schedule for tomorrow
                 schedule_time += timedelta(days=1)
 
+            # Calculate time to wait until the scheduled time
             time_to_wait = (schedule_time - now).total_seconds()
             logger.info(f"Next order scheduled for: {schedule_time.strftime('%Y-%m-%d %H:%M:%S')}. Waiting for {time_to_wait:.0f} seconds.")
 
@@ -47,6 +49,9 @@ class OrderScheduler:
             # This allows the thread to be stopped gracefully
             while time_to_wait > 0 and not self._stop_event.is_set():
                 wait_chunk = min(time_to_wait, 60) # Check every minute
+                if not(self.saxo_client._is_authenticated()):
+                    logger.error("SaxoClient is not authenticated.")
+                logger.debug(f"Waiting for {wait_chunk} seconds...")
                 self._stop_event.wait(wait_chunk)
                 time_to_wait -= wait_chunk
 

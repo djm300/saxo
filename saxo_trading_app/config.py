@@ -72,23 +72,22 @@ class Config:
         self.TOKEN_REFRESH_INTERVAL_SECONDS = 300 # Refresh token every 5 minutes
 
         # Example Order Details (customize as needed)
-        self.ORDER_SCHEDULE_TIME = "09:30" # HH:MM format
-        self.ORDER_DETAILS = {
-            'AccountKey': "YOUR_ACCOUNT_KEY_HERE", # Replace with actual account key
-            'Amount': 1,
-            'BuySell': 'Buy',
-            'OrderType': 'Limit',
-            'OrderPrice': 50,
-            'Uic': 50629, # Example UIC for "ETF MSCI World"
-            'AssetType': 'Etf',
-            'ManualOrder': True,
-            'OrderDuration': {
-                'DurationType': 'DayOrder'
-            }
-        }
+        self.ORDER_SCHEDULE_TIME = _load_config_value(
+            "ORDER_SCHEDULE_TIME",
+            default="",
+            json_config=params_config
+        )
+
+        self.ORDER_DETAILS= _load_config_value(
+            "ORDER_DETAILS",
+            default="",
+            json_config=params_config
+        )
+
 
 # Global instance of Config to be imported by other modules
 config = Config()
 
 if __name__ == "__main__":
-    print(config.REDIRECT_URI)
+    logger.debug("Config called directly. Printing configuration:")
+    logger.debug(config.REDIRECT_URI)
