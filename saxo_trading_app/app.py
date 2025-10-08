@@ -6,6 +6,7 @@ from .order_scheduler import OrderScheduler
 from .config import Config
 from saxo_sdk.client import SaxoClient
 from saxo_sdk.formatter import CustomFormatter
+from .dictionary import uic_dict
 
 # ==============================
 # Flask app initialization
@@ -143,6 +144,24 @@ def positions():
     positions = saxoclient.get_positions()
     return jsonify(positions)
 
+@app.route('/positionstable')
+def positionstable():
+    logger.info("Positions table endpoint accessed.")
+    if not saxoclient._is_authenticated():
+        return jsonify({"error": "Not authenticated"}), 401
+    raw_data = saxoclient.get_positions()
+
+    positions = []
+    for item in raw_data.get("Data", []):
+        base = item.get("PositionBase", {})
+        positions.append({
+            "uic": base.get("Uic"),
+            "name": uic_dict.get(base.get("Uic"), "N/A"),
+            "asset_type": base.get("AssetType"),
+            "amount": base.get("Amount"),
+        })
+
+    return render_template('positions.html', positions=positions)
 
 def startSaxoServer():
     logger.debug("Starting Flask app...")

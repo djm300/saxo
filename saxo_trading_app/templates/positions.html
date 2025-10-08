@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Positions</title>
+    <style>
+        /* Page background */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #f0f0f0;
+            margin: 0;
+            padding: 40px 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 700;
+            font-size: 2.8rem;
+            letter-spacing: 2px;
+            text-shadow: 0 0 8px #6ec1e4, 0 0 12px #48a9e6;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            max-width: 900px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 1.2s ease forwards;
+        }
+
+        thead tr {
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 0.9rem;
+            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2);
+        }
+
+        th, td {
+            padding: 14px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            transition: background-color 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            transform: scale(1.02);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Sparkling animation for Amount cells */
+        td.amount {
+            position: relative;
+            font-weight: 700;
+            color: #a0e7e5;
+            overflow: hidden;
+        }
+        td.amount::after {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: sparkle 2.5s infinite ease-in-out;
+            opacity: 0.7;
+            font-size: 1.2rem;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.7; transform: translateY(-50%) scale(1);}
+            50% { opacity: 1; transform: translateY(-60%) scale(1.3);}
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(20px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            table {
+                width: 95%;
+            }
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Current Positions</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Instrument (Uic)</th>
+                <th>Name</th>
+                <th>Asset Type</th>
+                <th>Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for position in positions %}
+                <tr>
+                    <td>{{ position.uic }}</td>
+                    <td>{{ position.name }}</td>
+                    <td>{{ position.asset_type }}</td>
+                    <td class="amount">{{ position.amount }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

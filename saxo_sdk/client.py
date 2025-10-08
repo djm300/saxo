@@ -136,11 +136,14 @@ class SaxoClient:
                 refreshed = self.auth_client.refresh_token()
                 if refreshed:
                     logger.info("Token refresh successful.")
+                    self.transition(self.STATE_AUTHENTICATED)
                 else:
                     logger.error("Token refresh failed; user re-authorization required.")
                     self.get_authorization_url()
+                    self.transition(self.STATE_WAITING_FOR_AUTHORIZATION_CODE)
             else:
                 expires_at = self.auth_client.tokens.get("access_token_expires_at", 0)
+                self.transition(self.STATE_AUTHENTICATED)
                 logger.debug(f"Access token valid until {lifetime_seconds_to_datetime(expires_at)}.")
             self._stop_event.wait(interval)
 
