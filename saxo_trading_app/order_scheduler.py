@@ -2,6 +2,7 @@ import threading
 import time
 import logging
 from datetime import datetime, timedelta
+from cronsim import CronSim # Import CronSim
 
 # Assuming saxo_sdk is accessible in the Python path
 from saxo_sdk.client import SaxoClient
@@ -12,10 +13,11 @@ logger = logging.getLogger()
 class OrderScheduler:
     def __init__(self, client: SaxoClient, config: Config):
         self.saxo_client = client # Access SaxoClient
-        self.order_schedule_time_str = config.ORDER_SCHEDULE_TIME
+        self.cron_expression = config.ORDER_SCHEDULE_TIME # Now expects a cron expression
         self.order_details = config.ORDER_DETAILS
         self._scheduler_thread = None
         self._stop_event = threading.Event()
+
 
     def _place_order(self):
         # The SaxoClient instance already handles token management internally.
@@ -30,19 +32,12 @@ class OrderScheduler:
     def _schedule_loop(self):
         while not self._stop_event.is_set():
 
-            # Calculate next schedule_time
-            now = datetime.now()
-            schedule_time = datetime.strptime(self.order_schedule_time_str, "%H:%M").replace(
-                year=now.year, month=now.month, day=now.day
-            )
-
-            # Check if the scheduled time has already passed today
-            if now > schedule_time:
-                # If the scheduled time for today has passed, schedule for tomorrow
-                schedule_time += timedelta(days=1)
+            # Calculate next schedule_time using cronsim
+            cron = CronSim(self.cron_expression, datetime.now())
+            schedule_time = next(cron)
 
             # Calculate time to wait until the scheduled time
-            time_to_wait = (schedule_time - now).total_seconds()
+            time_to_wait = (schedule_time - datetime.now()).total_seconds()
             logger.info(f"Next order scheduled for: {schedule_time.strftime('%Y-%m-%d %H:%M:%S')}. Waiting for {time_to_wait:.0f} seconds.")
 
             # Wait for the scheduled time, but check stop event periodically
@@ -58,18 +53,14 @@ class OrderScheduler:
             if not self._stop_event.is_set():
                 logger.info("Scheduled time reached. Placing order...")
                 self._place_order()
-                # After placing the order, schedule for the next day
-                # This loop will naturally re-calculate for the next day
-                # To avoid placing multiple orders in the same minute,
-                # we can add a small delay or ensure the schedule_time calculation
-                # correctly moves to the next day immediately after execution.
-                # The current logic will naturally move to the next day in the next iteration.
+                # After placing the order, the next iteration of the loop will naturally
+                # calculate the next scheduled time using cronsim, ensuring it's in the future.
             else:
                 logger.info("Order scheduler stopping.")
 
     def start_scheduler_thread(self):
         if self._scheduler_thread is None or not self._scheduler_thread.is_alive():
-            logger.info(f"Starting order scheduler thread for {self.order_schedule_time_str}.")
+            logger.info(f"Starting order scheduler thread with cron expression: {self.cron_expression}.")
             self._stop_event.clear()
             self._scheduler_thread = threading.Thread(target=self._schedule_loop, daemon=True)
             self._scheduler_thread.start()

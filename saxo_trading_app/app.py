@@ -154,14 +154,19 @@ def positionstable():
     positions = []
     for item in raw_data.get("Data", []):
         base = item.get("PositionBase", {})
+        dynamic = item.get("PositionView", {})
         positions.append({
+            "account_id": base.get("AccountId"),
             "uic": base.get("Uic"),
             "name": uic_dict.get(base.get("Uic"), "N/A"),
             "asset_type": base.get("AssetType"),
             "amount": base.get("Amount"),
+            "profit_loss": dynamic.get("ProfitLossOnTrade"),
         })
 
-    return render_template('positions.html', positions=positions)
+    positions.sort(key=lambda x: (x["account_id"], x["name"]))
+
+    return render_template('positions.html', positions=positions,raw_data=raw_data)
 
 def startSaxoServer():
     logger.debug("Starting Flask app...")

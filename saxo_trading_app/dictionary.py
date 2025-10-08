@@ -11,7 +11,8 @@ uic_dict = {
     43337: "Lotus",
     25449122: "Bitcoin ETF",
     6460562: "S&P500 ETF",
-    46634080: "ASR opties"
+    46634080: "ASR opties",
+    19112792: "SNOWFLAKE"
 }
 
 # Single source of account data
