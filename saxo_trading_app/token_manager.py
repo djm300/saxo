@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 # Assuming saxo_sdk is accessible in the Python path
 # If not, you might need to adjust sys.path or install it as a package
 from saxo_sdk.client import SaxoClient
-from . import config
+from .config import config
 
 logger = logging.getLogger()
 

@@ -5,14 +5,15 @@ from datetime import datetime, timedelta
 
 # Assuming saxo_sdk is accessible in the Python path
 from saxo_sdk.client import SaxoClient
-from . import config
+from .config import config
 
 logger = logging.getLogger()
 
 
 class OrderScheduler:
-    def __init__(self, saxo_client: SaxoClient):
-        self.saxo_client = saxo_client
+    def __init__(self, token_manager: TokenManager):
+        self.token_manager = token_manager
+        self.saxo_client = token_manager.saxo_client # Access SaxoClient from TokenManager
         self.order_schedule_time_str = config.ORDER_SCHEDULE_TIME
         self.order_details = config.ORDER_DETAILS
         self._scheduler_thread = None

@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 
 from .token_manager import TokenManager
 from .order_scheduler import OrderScheduler
+from .config import config
 from saxo_sdk.client import SaxoClient
 from saxo_sdk.formatter import CustomFormatter
 
@@ -39,6 +40,26 @@ logger.debug("Initializing TokenManager and OrderScheduler...")
 token_manager = TokenManager()
 order_scheduler = OrderScheduler(token_manager)
 
+# ==============================
+# Config loading
+# ==============================
+logger.debug("Loaded configuration:")
+logger.debug(f"REDIRECT_URI: {config.REDIRECT_URI}")
+logger.debug(f"SIMULATION_MODE: {config.SIMULATION_MODE}")
+logger.debug(f"AUTH_ENDPOINT: {config.AUTH_ENDPOINT}")
+logger.debug(f"TOKEN_ENDPOINT: {config.TOKEN_ENDPOINT}")
+logger.debug(f"CLIENT_ID: {config.CLIENT_ID}")
+logger.debug(f"BASE_URL: {config.BASE_URL}")
+logger.debug(f"TOKEN_FILE: {config.TOKEN_FILE}")
+logger.debug(f"TOKEN_REFRESH_INTERVAL_SECONDS: {config.TOKEN_REFRESH_INTERVAL_SECONDS}")
+logger.debug(f"ORDER_SCHEDULE_TIME: {config.ORDER_SCHEDULE_TIME}")
+logger.debug(f"ORDER_DETAILS: {config.ORDER_DETAILS}")
+
+
+
+# ==============================
+# Background task management
+# ==============================
 def start_background_tasks():
     logger.info("Starting background tasks...")
     token_manager.start_refresh_thread()
