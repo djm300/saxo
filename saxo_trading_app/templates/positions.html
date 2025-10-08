@@ -106,13 +106,12 @@
     </style>
 </head>
 <body>
-    <p> {{ raw_data }}</p>
+    <p> {{ positions }}</p>
     <h1>Current Positions</h1>
     <table>
         <thead>
             <tr>
                 <th>Account</th>
-                <th>Instrument (Uic)</th>
                 <th>Name</th>
                 <th>Asset Type</th>
                 <th>Amount</th>
@@ -123,7 +122,6 @@
             {% for position in positions %}
                 <tr>
                     <td>{{ position.account_id }}</td>
-                    <td>{{ position.uic }}</td>
                     <td>{{ position.name }}</td>
                     <td>{{ position.asset_type }}</td>
                     <td class="amount">{{ position.amount }}</td>

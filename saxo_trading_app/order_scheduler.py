@@ -33,7 +33,7 @@ class OrderScheduler:
         while not self._stop_event.is_set():
 
             # Calculate next schedule_time using cronsim
-            cron = CronSim(self.cron_expression, datetime.now())
+            cron = CronSim(expr=self.cron_expression, dt=datetime.now())
             schedule_time = next(cron)
 
             # Calculate time to wait until the scheduled time

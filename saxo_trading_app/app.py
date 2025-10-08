@@ -6,7 +6,7 @@ from .order_scheduler import OrderScheduler
 from .config import Config
 from saxo_sdk.client import SaxoClient
 from saxo_sdk.formatter import CustomFormatter
-from .dictionary import uic_dict
+from .dictionary import uic_dict, accounts_by_key, accounts_by_name
 
 # ==============================
 # Flask app initialization
@@ -156,7 +156,7 @@ def positionstable():
         base = item.get("PositionBase", {})
         dynamic = item.get("PositionView", {})
         positions.append({
-            "account_id": base.get("AccountId"),
+            "account_id": accounts_by_key[base.get("AccountId")]["name"],
             "uic": base.get("Uic"),
             "name": uic_dict.get(base.get("Uic"), "N/A"),
             "asset_type": base.get("AssetType"),
@@ -167,6 +167,29 @@ def positionstable():
     positions.sort(key=lambda x: (x["account_id"], x["name"]))
 
     return render_template('positions.html', positions=positions,raw_data=raw_data)
+
+@app.route('/order1')
+def order1():
+    logger.info("Positions table endpoint accessed.")
+    if not saxoclient._is_authenticated():
+        return jsonify({"error": "Not authenticated"}), 401
+    # LIMIT order 1 IWDA for a low price in EUR in portfolio Ouders
+    order_data={
+        'AccountKey': accounts_by_name['Ouders']['id'],
+        'Amount': 1,
+        'BuySell': 'Buy',
+        'OrderType': 'Limit',
+        'OrderPrice': 50,  # Set a low limit price to avoid immediate execution
+        'Uic': 50629,
+        'AssetType': 'Etf',
+        'ManualOrder': True,
+	    'OrderDuration': {
+	        'DurationType': 'DayOrder'
+	    }
+    }
+    saxoclient.place_order(order_data)
+    return render_template_string("<html><p>ok</p></html>")
+    
 
 def startSaxoServer():
     logger.debug("Starting Flask app...")
