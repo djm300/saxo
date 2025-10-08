@@ -8,6 +8,11 @@ from saxo_sdk.client import SaxoClient
 from saxo_sdk.formatter import CustomFormatter
 
 # ==============================
+# Flask app initialization
+# ==============================
+app = Flask(__name__)
+
+# ==============================
 # Logging setup
 # ==============================
 # send to root logger
@@ -29,11 +34,8 @@ fileformatter = logging.Formatter("[%(levelname)s] %(asctime)s - %(message)s", d
 file_handler.setFormatter(fileformatter)
 logger.addHandler(file_handler)
 
-
-
-app = Flask(__name__)
-
-# Initialize TokenManager and OrderScheduler
+# Initialize TokenManager and OrderScheduler globally
+logger.debug("Initializing TokenManager and OrderScheduler...")
 token_manager = TokenManager()
 order_scheduler = OrderScheduler(token_manager)
 
@@ -75,7 +77,7 @@ def authenticate():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
+def startSaxoServer():
     logger.debug("Starting Flask app...")
     logger.debug("Starting background tasks...")
     start_background_tasks()
