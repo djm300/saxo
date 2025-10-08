@@ -1,6 +1,6 @@
 import logging
 import atexit
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+from flask import Flask, jsonify, request, render_template_string, redirect, url_for, render_template
 
 from .order_scheduler import OrderScheduler
 from .config import Config
@@ -114,31 +114,35 @@ def authenticate():
 
     logger.info(f"SaxoClient current state: {current_state}")
 
+    auth_url = ""
     if current_state == SaxoClient.STATE_NOT_AUTHENTICATED or current_state == SaxoClient.STATE_ERROR:
-        return render_template_string('<p style="color:red;">ERROR: Not authenticated</p>'), 200
+        auth_url = saxoclient.get_authorization_url()
+        return render_template("authenticate.html", auth_url=auth_url, current_state=current_state), 200
     elif current_state == SaxoClient.STATE_WAITING_FOR_AUTHORIZATION_CODE:
         auth_url = saxoclient.get_authorization_url()
-        html_content = f"""
-        <p>Please visit the following URL to authorize:</p>
-        <p><a href="{auth_url}" target="_blank">{auth_url}</a></p>
-        <form method="POST" action="/authenticate">
-            <label for="authorization_code">Enter Authorization Code:</label><br>
-            <input type="text" id="authorization_code" name="authorization_code"><br><br>
-            <input type="submit" value="Submit Code">
-        </form>
-        """
-        return render_template_string(html_content), 200
+        return render_template("authenticate.html", auth_url=auth_url, current_state=current_state), 200
     elif current_state == SaxoClient.STATE_WAITING_FOR_TOKEN:
-        html_content = """
-        <p>WAITING FOR TOKEN</p>
-        <form method="POST" action="/authenticate">
-            <input type="submit" value="Attempt to get Token">
-        </form>
-        """
-        return render_template_string(html_content), 200
+        return render_template("authenticate.html", auth_url=auth_url, current_state=current_state), 200
     else:
-        # If already authenticated or in another state
-        return jsonify({"message": "SaxoClient is already authenticated or in an unexpected state."}), 200
+        return render_template("authenticate.html", auth_url=auth_url, current_state=current_state), 200
+
+
+@app.route('/portfolio')
+def portfolio():
+    logger.info("Portfolio endpoint accessed.")
+    if not saxoclient._is_authenticated():
+        return jsonify({"error": "Not authenticated"}), 401
+    portfolio = saxoclient.get_portfolio()
+    return jsonify(portfolio)
+
+@app.route('/positions')
+def positions():
+    logger.info("Positions endpoint accessed.")
+    if not saxoclient._is_authenticated():
+        return jsonify({"error": "Not authenticated"}), 401
+    positions = saxoclient.get_positions()
+    return jsonify(positions)
+
 
 def startSaxoServer():
     logger.debug("Starting Flask app...")

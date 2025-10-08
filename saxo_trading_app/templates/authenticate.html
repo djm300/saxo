@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>My Page</title>
+    <style>
+        .auth-bar {
+            width: 100%;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            font-weight: bold;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+        }
+        .auth-bar-green {
+            background-color: #4CAF50; /* green */
+        }
+        .auth-bar-red {
+            background-color: red;
+        }
+        .auth-bar-orange {
+            background-color: orange;
+        }
+
+        body {
+            margin-top: 50px; /* prevent content being hidden behind the bar */
+        }
+    </style>
+</head>
+<body>
+
+    {% if current_state == 'authenticated' %}
+        <div class="auth-bar auth-bar-green">Current state: {{ current_state }}</div>
+    {% elif current_state == 'waiting_for_authorization_code' %}
+        <div class="auth-bar auth-bar-orange">Current state: {{ current_state }}</div>
+    {% else %}
+        <div class="auth-bar auth-bar-red">Current state: {{ current_state }}</div>
+    {% endif %}
+
+    
+    {% if not(current_state == 'authenticated') %}
+    <p>Please visit the following URL to authorize:</p>
+    <p><a href="{{ auth_url }}" target="_blank">{{ auth_url }}</a></p>
+
+    <form method="POST" action="/authenticate">
+        <label for="authorization_code">Enter Authorization Code:</label><br>
+        <input type="text" id="authorization_code" name="authorization_code"><br><br>
+        <input type="submit" value="Submit Code">
+    </form>
+    {% endif %}
+
+
+</body>
+</html>
