@@ -2,11 +2,10 @@ import logging
 import atexit
 from flask import Flask, jsonify
 
-from token_manager import TokenManager
-from order_scheduler import OrderScheduler
-from . import config
-from saxo.saxo_sdk.client import SaxoClient
-from saxo.saxo_sdk.formatter import CustomFormatter
+from .token_manager import TokenManager
+from .order_scheduler import OrderScheduler
+from saxo_sdk.client import SaxoClient
+from saxo_sdk.formatter import CustomFormatter
 
 # ==============================
 # Logging setup
