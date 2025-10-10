@@ -15,6 +15,7 @@ class OrderScheduler:
         self.saxo_client = client # Access SaxoClient
         self.cron_expression = config.ORDER_SCHEDULE_TIME # Now expects a cron expression
         self.order_details = config.ORDER_DETAILS
+        self.order_schedule_time_str = next(CronSim(expr=self.cron_expression, dt=datetime.now()))
         self._scheduler_thread = None
         self._stop_event = threading.Event()
 
