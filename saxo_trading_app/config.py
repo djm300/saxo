@@ -71,18 +71,8 @@ class Config:
         # --- Application Specific Configuration ---
         self.TOKEN_REFRESH_INTERVAL_SECONDS = 300 # Refresh token every 5 minutes
 
-        # Example Order Details (customize as needed)
-        self.ORDER_SCHEDULE_TIME = _load_config_value(
-            "ORDER_SCHEDULE_TIME",
-            default="",
-            json_config=params_config
-        )
-
-        self.ORDER_DETAILS= _load_config_value(
-            "ORDER_DETAILS",
-            default="",
-            json_config=params_config
-        )
+        self.ORDERS = params_config.get("ORDERS", {})
+        logger.debug(f"Loaded ORDERS: {self.ORDERS}")
 
 
 

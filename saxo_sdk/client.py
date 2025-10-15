@@ -51,8 +51,9 @@ class SaxoClient:
             logger.warning(f"Attempted to transition to an unknown state: {new_state}")
             return
 
-        logger.info(f"SaxoClient state transition: {self._state} -> {new_state}")
-        self._state = new_state
+        if self._state != new_state:
+            logger.info(f"SaxoClient state transition: {self._state} -> {new_state}")
+            self._state = new_state
 
         if new_state == self.STATE_ERROR:
             logger.error("SaxoClient has entered an ERROR state.")

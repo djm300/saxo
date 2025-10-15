@@ -48,9 +48,6 @@ logger.debug(f"CLIENT_ID: {config.CLIENT_ID}")
 logger.debug(f"BASE_URL: {config.BASE_URL}")
 logger.debug(f"TOKEN_FILE: {config.TOKEN_FILE}")
 logger.debug(f"TOKEN_REFRESH_INTERVAL_SECONDS: {config.TOKEN_REFRESH_INTERVAL_SECONDS}")
-logger.debug(f"ORDER_SCHEDULE_TIME: {config.ORDER_SCHEDULE_TIME}")
-logger.debug(f"ORDER_DETAILS: {config.ORDER_DETAILS}")
-
 # Initialize SaxoClient and OrderScheduler globally
 logger.debug("Initializing SaxoClient and OrderScheduler...")
 saxoclient = SaxoClient(
@@ -92,8 +89,7 @@ def status():
     return jsonify({
         "app_status": "running",
         "saxoclient state": saxoclient.current_state(),
-        "order_scheduler_status": "running" if order_scheduler._scheduler_thread and order_scheduler._scheduler_thread.is_alive() else "stopped",
-        "next_order_time": order_scheduler.order_schedule_time_str
+        "order_scheduler_status": "running" if order_scheduler._scheduler_thread and order_scheduler._scheduler_thread.is_alive() else "stopped"
     })
 
 @app.route('/authenticate', methods=['GET', 'POST'])

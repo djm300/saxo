@@ -1,0 +1,42 @@
+{
+    "REDIRECT_URI": "https://djm300.github.io/saxo/oauth-redirect.html",
+    "SIMULATION_MODE": "True",
+    "SIM_ACCOUNT": "YOUR_SIM_ACCOUNT_NUMBER",
+    "SIM_PASSWORD": "YOUR_SIM_PASSWORD",
+    "SIM_AUTH_ENDPOINT": "https://sim.logonvalidation.net/authorize",
+    "SIM_TOKEN_ENDPOINT": "https://sim.logonvalidation.net/token",
+    "SIM_CLIENT_ID": "YOUR_SIM_CLIENT_ID",
+    "LIVE_AUTH_ENDPOINT": "https://live.logonvalidation.net/authorize",
+    "LIVE_TOKEN_ENDPOINT": "https://live.logonvalidation.net/token",
+    "LIVE_CLIENT_ID": "YOUR_LIVE_CLIENT_ID",
+    "ORDERS": {
+        "ORDER_NAME_1": {
+            "ORDER_SCHEDULE_TIME": "30 13 * * 2",
+            "AccountKey": "YOUR_ACCOUNT_KEY",
+            "Amount": 1,
+            "BuySell": "Buy",
+            "OrderType": "Limit",
+            "OrderPrice": 50,
+            "Uic": 50629,
+            "AssetType": "Etf",
+            "ManualOrder": true,
+            "OrderDuration": {
+                "DurationType": "DayOrder"
+            }
+        },
+        "ORDER_NAME_2": {
+            "ORDER_SCHEDULE_TIME": "0 9 * * 1-5",
+            "AccountKey": "ANOTHER_ACCOUNT_KEY",
+            "Amount": 2,
+            "BuySell": "Sell",
+            "OrderType": "Market",
+            "Uic": 21345,
+            "AssetType": "Stock",
+            "ManualOrder": false,
+            "OrderDuration": {
+                "DurationType": "GoodTillDate",
+                "Date": "2025-12-31T23:59:59Z"
+            }
+        }
+    }
+}
