@@ -227,10 +227,13 @@ class AuthorizationCodeClient(OAuth2Client):
     # --- Authorization flow ---
     def get_authorization_url(self, **params):
         """Return an authorization URL for the user to visit."""
-        code_verifier = self._generate_code_verifier()
-        code_challenge = self._generate_code_challenge(code_verifier)
+        if self.code_verifier == None:
+            self.code_verifier = self._generate_code_verifier()
+            self.code_challenge = self._generate_code_challenge(self.code_verifier)
+        else:
+            logger.debug("Re-using code challenge " + self.code_verifier )
         params['response_type'] = 'code'
-        params['code_challenge'] = code_challenge
+        params['code_challenge'] = self.code_challenge
         params['code_challenge_method'] = 'S256'
         url = self._get_auth_url(**params)
         logger.debug("Open this URL in a browser to authorize:")
