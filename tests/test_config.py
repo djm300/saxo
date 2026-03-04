@@ -2,7 +2,7 @@ import unittest
 import os
 import json
 from unittest.mock import patch, mock_open
-from saxo_trading_app.config import Config, _load_config_value, _load_params_json
+from shared.config import Config, _load_config_value, _load_params_json
 
 class TestConfig(unittest.TestCase):
 
@@ -70,21 +70,21 @@ class TestConfig(unittest.TestCase):
         config_instance = Config()
         self.assertTrue(config_instance.SIMULATION_MODE)
         self.assertEqual(config_instance.AUTH_ENDPOINT, "https://sim.logonvalidation.net/authorize")
-        self.assertEqual(config_instance.TOKEN_FILE, "saxo_tokens_sim.json")
+        self.assertEqual(config_instance.TOKEN_FILE, "tokens.json")
 
     def test_config_live_mode_from_env(self):
         os.environ["SIMULATION_MODE"] = "False"
         config_instance = Config()
         self.assertFalse(config_instance.SIMULATION_MODE)
         self.assertEqual(config_instance.AUTH_ENDPOINT, "https://live.logonvalidation.net/authorize")
-        self.assertEqual(config_instance.TOKEN_FILE, "saxo_tokens_live.json")
+        self.assertEqual(config_instance.TOKEN_FILE, "tokens.json")
 
     def test_config_live_mode_from_json(self):
         self._create_params_json({"SIMULATION_MODE": "False"})
         config_instance = Config()
         self.assertFalse(config_instance.SIMULATION_MODE)
         self.assertEqual(config_instance.AUTH_ENDPOINT, "https://live.logonvalidation.net/authorize")
-        self.assertEqual(config_instance.TOKEN_FILE, "saxo_tokens_live.json")
+        self.assertEqual(config_instance.TOKEN_FILE, "tokens.json")
 
     def test_config_redirect_uri_from_env(self):
         os.environ["REDIRECT_URI"] = "http://env.redirect"
@@ -113,7 +113,7 @@ class TestConfig(unittest.TestCase):
                     return self.value
                 return default
 
-        with patch("saxo_trading_app.config._load_config_value", new=MockConfigValueLoader(("http://tuple.redirect",))):
+        with patch("shared.config._load_config_value", new=MockConfigValueLoader(("http://tuple.redirect",))):
             config_instance = Config()
             self.assertEqual(config_instance.REDIRECT_URI, "http://tuple.redirect")
 
@@ -126,10 +126,11 @@ class TestConfig(unittest.TestCase):
         config_instance = Config()
         self.assertEqual(config_instance.CLIENT_ID, "28d17c462242447f94c4b0767c41a552")
 
-    def test_config_order_details(self):
+    def test_config_orders(self):
+        self._create_params_json({"ORDERS": {"first": {"Amount": 1}}})
         config_instance = Config()
-        self.assertIn('AccountKey', config_instance.ORDER_DETAILS)
-        self.assertEqual(config_instance.ORDER_DETAILS['Amount'], 1)
+        self.assertIn("first", config_instance.ORDERS)
+        self.assertEqual(config_instance.ORDERS["first"]["Amount"], 1)
 
 if __name__ == '__main__':
     unittest.main()

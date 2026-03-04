@@ -1,57 +1,38 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-# Assuming saxo_sdk is in the parent directory or accessible in the Python path
-from saxo_sdk.client import SaxoClient
+from shared.client import SaxoClient
+
 
 class TestSaxoClient(unittest.TestCase):
     def setUp(self):
-        # Mock the underlying clients
         self.mock_auth_client = MagicMock()
-        self.mock_portfolio_client = MagicMock()
-        self.mock_order_client = MagicMock()
+        self.mock_auth_client._is_access_token_expired.return_value = False
+        self.mock_auth_client.tokens = {"access_token": "abc"}
 
-        # Patch the imports within SaxoClient to use our mocks
-        # This is a bit more involved as we need to patch where SaxoClient *uses* them
-        # A simpler approach for this test is to patch the __init__ of SaxoClient
-        # to inject our mocks directly, or patch the classes it imports.
-        # Let's patch the classes it imports.
+        self.patcher_auth = patch("shared.client.AuthorizationCodeClient", return_value=self.mock_auth_client)
+        self.mock_auth_cls = self.patcher_auth.start()
 
-        self.patcher_auth = patch('saxo_sdk.client.AuthorizationCodeClient', return_value=self.mock_auth_client)
-        self.patcher_portfolio = patch('saxo_sdk.client.PortfolioClient', return_value=self.mock_portfolio_client)
-        self.patcher_orders = patch('saxo_sdk.client.OrderClient', return_value=self.mock_order_client)
-
-        self.mock_auth = self.patcher_auth.start()
-        self.mock_portfolio = self.patcher_portfolio.start()
-        self.mock_orders = self.patcher_orders.start()
-
-        # Initialize SaxoClient with dummy arguments
         self.client = SaxoClient(
             client_id="dummy_id",
-            client_secret="dummy_secret",
             redirect_uri="dummy_uri",
             auth_endpoint="dummy_auth",
-            token_endpoint="dummy_token"
+            token_endpoint="dummy_token",
         )
 
     def tearDown(self):
         self.patcher_auth.stop()
-        self.patcher_portfolio.stop()
-        self.patcher_orders.stop()
 
     def test_init(self):
-        # Check if the underlying clients were initialized correctly
-        self.mock_auth.assert_called_once_with(
+        self.mock_auth_cls.assert_called_once_with(
             client_id="dummy_id",
-            client_secret="dummy_secret",
             redirect_uri="dummy_uri",
             auth_endpoint="dummy_auth",
             token_endpoint="dummy_token",
-            token_file='tokens.json' # Default value
+            token_file="tokens.json",
+            baseurl="https://gateway.saxobank.com/sim/openapi",
         )
-        self.mock_portfolio.assert_called_once_with(self.mock_auth_client)
-        self.mock_orders.assert_called_once_with(self.mock_auth_client)
-        self.assertEqual(self.client.scope, "required_scope") # Default scope
+        self.assertEqual(self.client.scope, "required_scope")
 
     def test_get_authorization_url(self):
         self.client.get_authorization_url()
@@ -63,30 +44,37 @@ class TestSaxoClient(unittest.TestCase):
         self.mock_auth_client.get_token.assert_called_once_with(code)
 
     def test_refresh_token(self):
+        self.mock_auth_client.refresh_token.return_value = {"access_token": "new"}
         self.client.refresh_token()
         self.mock_auth_client.refresh_token.assert_called_once()
 
-    def test_get_portfolio(self):
+    @patch.object(SaxoClient, "_make_api_request")
+    def test_get_portfolio(self, mock_api):
         self.client.get_portfolio()
-        self.mock_portfolio_client.get_portfolio.assert_called_once()
+        mock_api.assert_called_once_with("GET", "/port/v1/balances/me")
 
-    def test_get_positions(self):
+    @patch.object(SaxoClient, "_make_api_request")
+    def test_get_positions(self, mock_api):
         self.client.get_positions()
-        self.mock_portfolio_client.get_positions.assert_called_once()
+        mock_api.assert_called_once_with("GET", "/port/v1/positions/me")
 
-    def test_place_order(self):
+    @patch.object(SaxoClient, "_make_api_request")
+    def test_place_order(self, mock_api):
         order_details = {"instrument": "MSFT", "quantity": 5}
         self.client.place_order(order_details)
-        self.mock_order_client.place_order.assert_called_once_with(order_details)
+        mock_api.assert_called_once_with("POST", "/trade/v2/orders", data=order_details)
 
-    def test_get_order_status(self):
+    @patch.object(SaxoClient, "_make_api_request")
+    def test_get_order_status(self, mock_api):
         order_id = "order_xyz"
         self.client.get_order_status(order_id)
-        self.mock_order_client.get_order_status.assert_called_once_with(order_id)
+        mock_api.assert_called_once_with("GET", f"/trade/v1/orders/{order_id}")
 
-    def test_get_all_orders(self):
+    @patch.object(SaxoClient, "_make_api_request")
+    def test_get_all_orders(self, mock_api):
         self.client.get_all_orders()
-        self.mock_order_client.get_all_orders.assert_called_once()
+        mock_api.assert_called_once_with("GET", "/trade/v1/orders")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
