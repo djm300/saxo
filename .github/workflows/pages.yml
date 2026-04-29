@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
   pages: write
   id-token: write
 
@@ -38,13 +37,13 @@ jobs:
 
       - name: Prepare Pages artifact
         run: |
-          tar -czf github-pages.tar.gz -C docs oauth-redirect.html
+          mkdir -p _site
+          cp docs/oauth-redirect.html _site/oauth-redirect.html
 
       - name: Upload Pages artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-pages-artifact@v4
         with:
-          name: github-pages
-          path: ./github-pages.tar.gz
+          path: ./_site
 
       - name: Deploy Pages
         id: deployment
