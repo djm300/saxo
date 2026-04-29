@@ -34,6 +34,22 @@ Useful flags:
 - `--params PATH` to read a different config file
 - `--verbose` to enable informational logs
 
+## Test coverage
+
+Run the suite with line coverage reporting via the standard library:
+
+```bash
+python3 scripts/coverage.py
+```
+
+Pass extra pytest arguments after the script name:
+
+```bash
+python3 scripts/coverage.py tests/test_client.py -k token
+```
+
+Coverage summaries are written to `.coverage-trace/`.
+
 ## Web app
 
 Start the Flask app with:
