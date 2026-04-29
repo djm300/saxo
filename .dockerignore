@@ -1,0 +1,16 @@
+.git
+.codex
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage-trace/
+.coverage
+app.log
+out.csv
+params.json
+tokens.json
+saxo_tokens.json
+saxo_tokens_sim.json
+saxo_tokens_live.json
+.DS_Store
+.vscode/

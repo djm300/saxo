@@ -1,5 +1,6 @@
 import logging
 import atexit
+import os
 from flask import Flask, jsonify, request, redirect, url_for, render_template
 
 from .order_scheduler import OrderScheduler
@@ -200,4 +201,9 @@ def startSaxoServer():
     logger.debug("Starting Flask app...")
     logger.debug("Starting background tasks...")
     start_background_tasks()
-    app.run(debug=True, use_reloader=False) # use_reloader=False to prevent threads from starting twice
+    app.run(
+        host=os.getenv("SAXO_HOST", "0.0.0.0"),
+        port=int(os.getenv("PORT", "5000")),
+        debug=os.getenv("FLASK_DEBUG", "1").lower() in {"1", "true", "yes", "on"},
+        use_reloader=False,
+    ) # use_reloader=False to prevent threads from starting twice

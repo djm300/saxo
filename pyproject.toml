@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "saxo-tools"
+version = "0.1.0"
+description = "Python tools for Saxo Bank OpenAPI access"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "Flask",
+  "requests",
+  "cronsim",
+]
+
+[project.optional-dependencies]
+cli = [
+  "prettytable",
+]
+test = [
+  "pytest",
+]
+
+[project.scripts]
+saxo-cli = "cli.saxocli:main"
+saxo-web = "web.app:startSaxoServer"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["cli*", "shared*", "web*"]
+
+[tool.setuptools.package-data]
+web = ["templates/*.html"]

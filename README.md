@@ -6,6 +6,7 @@ Python tools for Saxo Bank OpenAPI access.
 - `cli/` - command-line portfolio, orders, and follow/TUI commands
 - `web/` - Flask app for auth and portfolio views
 - `shared/` - auth, client, config, formatter, and account lookup helpers
+- `pyproject.toml` - packaging metadata and console scripts
 
 ## Configuration
 
@@ -19,14 +20,27 @@ Common values:
 
 In `params.json`, orders can be configured under `ORDERS`, with each order using `ORDER_SCHEDULE_TIME` and the API payload fields needed by Saxo.
 
+## Install
+
+Editable install for local work:
+
+```bash
+pip install -e ".[cli]"
+```
+
+That provides:
+
+- `saxo-cli` for the command-line utility
+- `saxo-web` for the Flask app
+
 ## CLI
 
 Run the CLI entry point with:
 
 ```bash
-python -m cli portfolio --format text
-python -m cli orders --format json
-python -m cli follow ASML
+saxo-cli portfolio --format text
+saxo-cli orders --format json
+saxo-cli follow ASML
 ```
 
 Useful flags:
@@ -55,7 +69,7 @@ Coverage summaries are written to `.coverage-trace/`.
 Start the Flask app with:
 
 ```bash
-python -m web
+saxo-web
 ```
 
 It exposes routes for:
@@ -66,8 +80,22 @@ It exposes routes for:
 - `/positions`
 - `/positionstable`
 
+Container example:
+
+```bash
+docker build -t saxo-tools .
+docker run --rm -p 5000:5000 \
+  -v "$PWD/params.json:/app/params.json:ro" \
+  -v "$PWD/tokens.json:/app/tokens.json" \
+  saxo-tools
+```
+
+The app binds to `0.0.0.0:5000` by default inside the container. Override with
+`PORT`, `SAXO_HOST`, or `FLASK_DEBUG` if needed.
+
 ## Notes
 
 - Tokens default to `tokens.json`.
 - `SIMULATION_MODE=true` uses Saxo SIM endpoints.
 - `SIMULATION_MODE=false` uses Saxo LIVE endpoints.
+- Keep `params.json` and `tokens.json` out of the image; mount them at runtime instead.

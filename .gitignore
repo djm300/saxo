@@ -1,5 +1,6 @@
 out.csv
 .DS_Store
+.codex
 saxo_tokens.json
 saxo_tokens_sim.json
 saxo_tokens_live.json
