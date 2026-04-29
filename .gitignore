@@ -4,6 +4,7 @@ saxo_tokens.json
 saxo_tokens_sim.json
 saxo_tokens_live.json
 app.log
+tokens.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
