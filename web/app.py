@@ -1,12 +1,12 @@
 import logging
 import atexit
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for, render_template
+from flask import Flask, jsonify, request, redirect, url_for, render_template
 
 from .order_scheduler import OrderScheduler
 from shared.config import Config
 from shared.client import SaxoClient
 from shared.formatter import CustomFormatter
-from shared.dictionary import accounts_by_key, accounts_by_name
+from shared.dictionary import accounts_by_key
 
 # ==============================
 # Flask app initialization
@@ -82,7 +82,7 @@ def _instrument_name(client, uic, asset_type, cache):
 # ==============================
 def start_background_tasks():
     logger.info("Starting background tasks...")
-    saxoclient.start_refresh_thread()
+    saxoclient.start_refresh_thread(config.TOKEN_REFRESH_INTERVAL_SECONDS)
     order_scheduler.start_scheduler_thread()
 
 def stop_background_tasks():
@@ -129,42 +129,23 @@ def authenticate():
     if request.method == "POST" and saxoclient.current_state() == SaxoClient.STATE_WAITING_FOR_TOKEN:
         return redirect(url_for("status"))
 
-    # Handle GET requests and initial state checks
     current_state = saxoclient.current_state()
-
     logger.info(f"SaxoClient current state: {current_state}")
 
     auth_url = ""
-    if current_state == SaxoClient.STATE_NOT_AUTHENTICATED or current_state == SaxoClient.STATE_ERROR:
+    if current_state in (
+        SaxoClient.STATE_NOT_AUTHENTICATED,
+        SaxoClient.STATE_ERROR,
+        SaxoClient.STATE_WAITING_FOR_AUTHORIZATION_CODE,
+    ):
         auth_url = saxoclient.get_authorization_url()
-        return render_template(
-            "authenticate.html",
-            auth_url=auth_url,
-            current_state=current_state,
-            redirect_uri=config.REDIRECT_URI,
-        ), 200
-    elif current_state == SaxoClient.STATE_WAITING_FOR_AUTHORIZATION_CODE:
-        auth_url = saxoclient.get_authorization_url()
-        return render_template(
-            "authenticate.html",
-            auth_url=auth_url,
-            current_state=current_state,
-            redirect_uri=config.REDIRECT_URI,
-        ), 200
-    elif current_state == SaxoClient.STATE_WAITING_FOR_TOKEN:
-        return render_template(
-            "authenticate.html",
-            auth_url=auth_url,
-            current_state=current_state,
-            redirect_uri=config.REDIRECT_URI,
-        ), 200
-    else:
-        return render_template(
-            "authenticate.html",
-            auth_url=auth_url,
-            current_state=current_state,
-            redirect_uri=config.REDIRECT_URI,
-        ), 200
+
+    return render_template(
+        "authenticate.html",
+        auth_url=auth_url,
+        current_state=current_state,
+        redirect_uri=config.REDIRECT_URI,
+    ), 200
 
 
 @app.route("/oauth/callback")
@@ -214,29 +195,6 @@ def positionstable():
     positions.sort(key=lambda x: (str(x.get("asset_type") or ""), str(x.get("name") or "")))
 
     return render_template('positions.html', positions=positions,raw_data=raw_data)
-
-@app.route('/order1')
-def order1():
-    logger.info("Positions table endpoint accessed.")
-    if not saxoclient._is_authenticated():
-        return jsonify({"error": "Not authenticated"}), 401
-    # LIMIT order 1 IWDA for a low price in EUR in portfolio Ouders
-    order_data={
-        'AccountKey': accounts_by_name['Ouders']['id'],
-        'Amount': 1,
-        'BuySell': 'Buy',
-        'OrderType': 'Limit',
-        'OrderPrice': 50,  # Set a low limit price to avoid immediate execution
-        'Uic': 50629,
-        'AssetType': 'Etf',
-        'ManualOrder': True,
-	    'OrderDuration': {
-	        'DurationType': 'DayOrder'
-	    }
-    }
-    saxoclient.place_order(order_data)
-    return render_template_string("<html><p>ok</p></html>")
-    
 
 def startSaxoServer():
     logger.debug("Starting Flask app...")

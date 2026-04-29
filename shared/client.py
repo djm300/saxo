@@ -5,7 +5,7 @@ import threading
 # Set up logger for this module
 logger = logging.getLogger(__name__)
 
-from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime, relative_seconds_to_lifetime_seconds
+from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime
 
 class SaxoClient:
     # Define possible states for the client
@@ -77,7 +77,10 @@ class SaxoClient:
         self.transition(self.STATE_WAITING_FOR_TOKEN)
         try:
             tokens = self.auth_client.get_token(code)
-            self.transition(self.STATE_AUTHENTICATED)
+            if tokens and self.auth_client.tokens.get("access_token"):
+                self.transition(self.STATE_AUTHENTICATED)
+            else:
+                self.transition(self.STATE_ERROR)
             return tokens
         except Exception as e:
             logger.error(f"Failed to get token: {e}")

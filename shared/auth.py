@@ -5,7 +5,6 @@ import os
 import json
 import time
 import logging
-import threading
 
 
 # ==============================
@@ -85,23 +84,10 @@ def handle_oauth_errors(func):
 def lifetime_seconds_to_datetime(lifetime_seconds):
     return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(lifetime_seconds))
 
-def relative_seconds_to_lifetime_seconds(seconds):
-    return int(time.time()) + int(seconds)
-
 # ==============================
 # Authorization Code + PKCE Client
 # ==============================
 class AuthorizationCodeClient(OAuth2Client):
-
-
-    def startAuthflow(self):
-        """Start the OAuth2 authorization flow."""
-        auth_url = self.get_authorization_url()
-        print(f"Please go to the following URL and authorize the application:\n{auth_url}")
-        code = input("Enter the authorization code provided by Saxo: ")
-        tokens = self.get_token(code)
-        logger.info("Authorization flow completed and tokens obtained.")
-        return tokens
         
     def __init__(self, client_id, redirect_uri, auth_endpoint, token_endpoint, baseurl, token_file='tokens.json' ):
         super().__init__(client_id, redirect_uri, auth_endpoint, token_endpoint, baseurl)
@@ -122,28 +108,6 @@ class AuthorizationCodeClient(OAuth2Client):
                 logger.debug(f"Refresh token expiry at {lifetime_seconds_to_datetime(self.tokens.get('refresh_token_expires_at', 0))}")
             else:
                 logger.error("No refresh_token_expires_at found in tokens.")
-
-            # The below would automatically start the auth flow on init, but we want to control when that happens.
-
-            '''
-            # Check expiration
-            if self._is_access_token_expired():
-                logger.error("Access token is expired; attempting to refresh.")
-                # Assume refresh_token is present and valid
-                refreshed = self.refresh_token()
-                if refreshed:
-                    logger.info("Token refresh successful.")
-                else:
-                    logger.error("Automatic token refresh failed; user re-authorization required.")
-                    self.startAuthflow()
-            expires_at = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.tokens.get("access_token_expires_at", 0)))
-            logger.info(f"Access token valid until {expires_at}.")
-        else:
-            logger.info("No existing tokens found; starting user authorization.")
-            
-            #self.startAuthflow()
-            '''
-
 
     # --- PKCE helpers ---
     def _generate_code_verifier(self):

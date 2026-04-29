@@ -1,43 +1,57 @@
-# python-saxo
-Python wrapper for Saxo Bank's OpenAPI
+# saxo
+Python tools for Saxo Bank OpenAPI access.
 
-### You'll need  
-* Python 3.4 or above
-* [requests](https://requests.readthedocs.io/en/master/) for Python
-* [Saxo Developer Account](https://www.developer.saxo/)
+## Layout
 
-### Usage
+- `cli/` - command-line portfolio, orders, and follow/TUI commands
+- `web/` - Flask app for auth and portfolio views
+- `shared/` - auth, client, config, formatter, and account lookup helpers
 
-Create an app on your developer account (for either DEMO or LIVE) using the following settings:
+## Configuration
 
-* Redirect URL: http://gttkeith.github.io/python-saxo/authcode
-* Grant Type: Code
-* Access control: ☑ Allow this app to be enabled for trading
+Configuration is loaded from environment variables first, then `params.json`, then defaults.
 
-An example `main.py` has been provided in the repo, where app details are stored in a `params.json` file. Queries can be made through the console, and results are dumped into `out.csv` in the same directory.
+Common values:
 
-pysaxo negotiates the authentication procedure using the complete OAuth2 authorisation flow. Sessions are proactively refreshed to prevent unexpected logouts.
+- `REDIRECT_URI`
+- `SIMULATION_MODE`
+- `TOKEN_FILE`
 
-Creating a new session:
+In `params.json`, orders can be configured under `ORDERS`, with each order using `ORDER_SCHEDULE_TIME` and the API payload fields needed by Saxo.
 
-```python
-from pysaxo import Session
-s = Session(app_key, auth_endpoint, token_endpoint, secret)
+## CLI
+
+Run the CLI entry point with:
+
+```bash
+python -m cli portfolio --format text
+python -m cli orders --format json
+python -m cli follow ASML
 ```
 
-Performing requests:
+Useful flags:
 
-```python
-# get information about authorised user
-s.get('port/v1/users/me')
+- `--params PATH` to read a different config file
+- `--verbose` to enable informational logs
 
-# retrieve a list of FX spot instruments containing SGD
-s.get('ref/v1/instruments', KeyWords='SGD', AssetTypes='FxSpot')
+## Web app
 
-# retrieve the historical 1H:1M bid/asks of asset UIC 45: USDSGD
-s.get('chart/v1/charts', Uic=45, AssetType='FxSpot', Horizon=60)
+Start the Flask app with:
+
+```bash
+python -m web
 ```
 
-Query parameters are case-sensitive.
+It exposes routes for:
 
-python-saxo is deliberately minimal, and will retain compatibility through changes in Saxo's API endpoints. For a comprehensive overview of available endpoints and query/response formats, please refer to the [Saxo OpenAPI documentation](https://www.developer.saxo/openapi/learn).
+- `/status`
+- `/authenticate`
+- `/portfolio`
+- `/positions`
+- `/positionstable`
+
+## Notes
+
+- Tokens default to `tokens.json`.
+- `SIMULATION_MODE=true` uses Saxo SIM endpoints.
+- `SIMULATION_MODE=false` uses Saxo LIVE endpoints.
