@@ -18,6 +18,13 @@ Common values:
 - `SIMULATION_MODE`
 - `TOKEN_FILE`
 
+The OAuth redirect page is published from GitHub Pages at:
+
+`https://djm300.github.io/saxo/oauth-redirect.html`
+
+The Pages workflow publishes only `docs/oauth-redirect.html`, so that file is
+the source for the published redirect URL.
+
 In `params.json`, orders can be configured under `ORDERS`, with each order using `ORDER_SCHEDULE_TIME` and the API payload fields needed by Saxo.
 
 ## Install

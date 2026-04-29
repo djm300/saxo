@@ -3,40 +3,109 @@
 <html>
 
 <head>
-    <link rel="stylesheet" href="sakura.css">
-    <link rel="stylesheet" href="styles.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Authcode</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f5f1e8;
+            --fg: #1f2933;
+            --panel: #ffffff;
+            --accent: #0f766e;
+            --border: #d6d3cc;
+        }
+
+        html,
+        body {
+            margin: 0;
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--fg);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            display: grid;
+            place-items: center;
+            padding: 32px 16px;
+        }
+
+        main {
+            width: min(100%, 560px);
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 10px 30px rgba(31, 41, 51, 0.08);
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 1.4rem;
+            letter-spacing: 0.08em;
+        }
+
+        p {
+            margin: 0 0 18px;
+            line-height: 1.5;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            color: var(--fg);
+            background: #fff;
+        }
+
+        button {
+            margin-top: 14px;
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 999px;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            filter: brightness(1.05);
+        }
+
+        footer {
+            margin-top: 18px;
+            font-size: 0.9rem;
+            opacity: 0.75;
+        }
+    </style>
 </head>
 
 <body>
-    <h2>AUTHCODE</h2>
+    <main>
+        <h1>AUTHCODE</h1>
+        <p>Paste this code into python-saxo to complete authentication.</p>
+        <input type="input" id="authcode" value="Your browser does not support JavaScript." readonly>
+        <br>
+        <button type="button" onclick="document.getElementById('authcode').select(); document.execCommand('copy')">Copy</button>
 
-    <div>
-        <p>
-            Paste this code into python-saxo to complete authentication<br><br>
-            <input type="input" id="authcode" style="width:420px;" value="Your browser does not support JavaScript."
-                readonly><br><br>
-            <button type="button"
-                onclick="document.getElementById('authcode').select(); document.execCommand('copy')">Copy</button>
+        <script>
+            var p = new URLSearchParams(window.location.search);
+            if (p.has("code")) {
+                document.getElementById("authcode").value = p.get("code");
+            } else {
+                document.getElementById("authcode").value = "Authentication failed.";
+            }
+        </script>
 
-            <script>
-                var p = new URLSearchParams(window.location.search);
-                if (p.has("code")) {
-                    document.getElementById("authcode").value = p.get("code");
-                } else {
-                    document.getElementById("authcode").value = "Authentication failed.";
-                }
-            </script>
-        </p>
-    </div>
+        <footer>
+            OAuth redirect helper page for Saxo.
+        </footer>
+    </main>
 </body>
-
-<hr>
-
-<footer>
-    <a href='https://github.com/gttkeith/gttkeith.github.io'>gttkeith.github.io</a>
-    |
-    rendered with <a href="https://github.com/oxalorg/sakura">sakura css</a>
-</footer>
 
 </html>
