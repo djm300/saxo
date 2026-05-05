@@ -1,15 +1,16 @@
 import unittest
 import os
 import json
+import tempfile
 from unittest.mock import patch, mock_open
 from shared.config import Config, _load_config_value, _load_params_json
 
 class TestConfig(unittest.TestCase):
 
     def setUp(self):
-        # Ensure no params.json exists before each test
-        if os.path.exists("params.json"):
-            os.remove("params.json")
+        self._old_cwd = os.getcwd()
+        self._tmpdir = tempfile.TemporaryDirectory()
+        os.chdir(self._tmpdir.name)
         # Clear environment variables that might interfere
         os.environ.pop("REDIRECT_URI", None)
         os.environ.pop("SIMULATION_MODE", None)
@@ -19,9 +20,8 @@ class TestConfig(unittest.TestCase):
         os.environ.pop("TEST_KEY", None) # Added to clear TEST_KEY environment variable
 
     def tearDown(self):
-        # Clean up after each test
-        if os.path.exists("params.json"):
-            os.remove("params.json")
+        os.chdir(self._old_cwd)
+        self._tmpdir.cleanup()
         os.environ.pop("REDIRECT_URI", None)
         os.environ.pop("SIMULATION_MODE", None)
         os.environ.pop("SAXO_AUTH_ENDPOINT", None)
@@ -125,12 +125,6 @@ class TestConfig(unittest.TestCase):
         os.environ["SIMULATION_MODE"] = "False"
         config_instance = Config()
         self.assertEqual(config_instance.CLIENT_ID, "28d17c462242447f94c4b0767c41a552")
-
-    def test_config_orders(self):
-        self._create_params_json({"ORDERS": {"first": {"Amount": 1}}})
-        config_instance = Config()
-        self.assertIn("first", config_instance.ORDERS)
-        self.assertEqual(config_instance.ORDERS["first"]["Amount"], 1)
 
 if __name__ == '__main__':
     unittest.main()

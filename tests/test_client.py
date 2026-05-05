@@ -49,31 +49,13 @@ class TestSaxoClient(unittest.TestCase):
         self.mock_auth_client.refresh_token.assert_called_once()
 
     @patch.object(SaxoClient, "_make_api_request")
-    def test_get_portfolio(self, mock_api):
-        self.client.get_portfolio()
-        mock_api.assert_called_once_with("GET", "/port/v1/balances/me")
-
-    @patch.object(SaxoClient, "_make_api_request")
     def test_get_positions(self, mock_api):
         self.client.get_positions()
         mock_api.assert_called_once_with("GET", "/port/v1/positions/me")
 
-    @patch.object(SaxoClient, "_make_api_request")
-    def test_place_order(self, mock_api):
-        order_details = {"instrument": "MSFT", "quantity": 5}
-        self.client.place_order(order_details)
-        mock_api.assert_called_once_with("POST", "/trade/v2/orders", data=order_details)
-
-    @patch.object(SaxoClient, "_make_api_request")
-    def test_get_order_status(self, mock_api):
-        order_id = "order_xyz"
-        self.client.get_order_status(order_id)
-        mock_api.assert_called_once_with("GET", f"/trade/v1/orders/{order_id}")
-
-    @patch.object(SaxoClient, "_make_api_request")
-    def test_get_all_orders(self, mock_api):
-        self.client.get_all_orders()
-        mock_api.assert_called_once_with("GET", "/trade/v1/orders")
+    def test_api_request_rejects_write_methods(self):
+        with self.assertRaises(PermissionError):
+            self.client._make_api_request("POST", "/trade/v2/orders", data={"Amount": 1})
 
 
 if __name__ == "__main__":

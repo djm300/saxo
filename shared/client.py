@@ -170,6 +170,10 @@ class SaxoClient:
         Helper method to make API requests.
         Handles base URL, authorization headers, and response parsing.
         """
+        method = method.upper()
+        if method != "GET":
+            raise PermissionError("This Saxo client is read-only and only allows GET API requests.")
+
         if not self.auth_client.tokens or self.auth_client._is_access_token_expired():
             logger.warning("Token expired or not found. Attempting to refresh.")
             try:
@@ -206,12 +210,6 @@ class SaxoClient:
             logger.error(f"API request failed: {e}")
             raise ConnectionError(f"API request to {url} failed.") from e
 
-    def get_portfolio(self):
-        """Get the user's portfolio."""
-        # Refactored to use the template method
-        logger.info("Fetching portfolio via SaxoClient helper.")
-        return self._make_api_request("GET", "/port/v1/balances/me")
-
     def get_positions(self):
         """Get current positions."""
         # Refactored to use the template method
@@ -228,23 +226,3 @@ class SaxoClient:
         # Refactored to use the template method
         logger.info("Fetching instrument details via SaxoClient helper.")
         return self._make_api_request("GET", f"/ref/v1/instruments/details/{uic}/{asset_type}")
-
-    def place_order(self, order_details):
-        """Place a new order."""
-        # Refactored to use the template method
-        logger.info("Placing order via SaxoClient helper.")
-        # Assuming order placement is a POST request to an orders endpoint
-        # The exact endpoint needs to be confirmed from SAXO API docs
-        return self._make_api_request("POST", "/trade/v2/orders", data=order_details)
-
-    def get_order_status(self, order_id):
-        """Get the status of a specific order."""
-        # Refactored to use the template method
-        logger.info(f"Fetching status for order {order_id} via SaxoClient helper.")
-        return self._make_api_request("GET", f"/trade/v1/orders/{order_id}")
-
-    def get_all_orders(self):
-        """Get all orders."""
-        # Refactored to use the template method
-        logger.info("Fetching all orders via SaxoClient helper.")
-        return self._make_api_request("GET", "/trade/v1/orders")

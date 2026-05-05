@@ -71,11 +71,6 @@ class Config:
         # --- Application Specific Configuration ---
         self.TOKEN_REFRESH_INTERVAL_SECONDS = 300 # Refresh token every 5 minutes
 
-        self.ORDERS = params_config.get("ORDERS", {})
-        logger.debug(f"Loaded ORDERS: {self.ORDERS}")
-
-
-
 if __name__ == "__main__":
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

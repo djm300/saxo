@@ -3,7 +3,6 @@ import atexit
 import os
 from flask import Flask, jsonify, request, redirect, url_for, render_template
 
-from .order_scheduler import OrderScheduler
 from shared.config import Config
 from shared.client import SaxoClient
 from shared.formatter import CustomFormatter
@@ -49,8 +48,8 @@ logger.debug(f"CLIENT_ID: {config.CLIENT_ID}")
 logger.debug(f"BASE_URL: {config.BASE_URL}")
 logger.debug(f"TOKEN_FILE: {config.TOKEN_FILE}")
 logger.debug(f"TOKEN_REFRESH_INTERVAL_SECONDS: {config.TOKEN_REFRESH_INTERVAL_SECONDS}")
-# Initialize SaxoClient and OrderScheduler globally
-logger.debug("Initializing SaxoClient and OrderScheduler...")
+# Initialize SaxoClient globally
+logger.debug("Initializing SaxoClient...")
 saxoclient = SaxoClient(
     client_id=config.CLIENT_ID,
     redirect_uri=config.REDIRECT_URI,
@@ -58,8 +57,6 @@ saxoclient = SaxoClient(
     token_endpoint=config.TOKEN_ENDPOINT,
     token_file=config.TOKEN_FILE,
     baseurl=config.BASE_URL)
-
-order_scheduler = OrderScheduler(saxoclient, config)
 
 
 def _instrument_name(client, uic, asset_type, cache):
@@ -84,12 +81,10 @@ def _instrument_name(client, uic, asset_type, cache):
 def start_background_tasks():
     logger.info("Starting background tasks...")
     saxoclient.start_refresh_thread(config.TOKEN_REFRESH_INTERVAL_SECONDS)
-    order_scheduler.start_scheduler_thread()
 
 def stop_background_tasks():
     logger.info("Stopping background tasks...")
     saxoclient.stop_refresh_thread()
-    order_scheduler.stop_scheduler_thread()
 
 # Register cleanup function to run on app exit
 atexit.register(stop_background_tasks)
@@ -97,7 +92,7 @@ atexit.register(stop_background_tasks)
 @app.route('/')
 def home():
     logger.info("Home endpoint accessed.")
-    return "Saxo Trading App is running!"
+    return "Saxo read-only positions app is running!"
 
 @app.route('/status')
 def status():
@@ -105,7 +100,7 @@ def status():
     return jsonify({
         "app_status": "running",
         "saxoclient state": saxoclient.current_state(),
-        "order_scheduler_status": "running" if order_scheduler._scheduler_thread and order_scheduler._scheduler_thread.is_alive() else "stopped"
+        "mode": "read-only",
     })
 
 @app.route('/authenticate', methods=['GET', 'POST'])
@@ -154,14 +149,6 @@ def oauth_callback():
     # Provider redirect target: forwards code/error into the existing authenticate flow.
     return redirect(url_for("authenticate", **request.args))
 
-
-@app.route('/portfolio')
-def portfolio():
-    logger.info("Portfolio endpoint accessed.")
-    if not saxoclient._is_authenticated():
-        return jsonify({"error": "Not authenticated"}), 401
-    portfolio = saxoclient.get_portfolio()
-    return jsonify(portfolio)
 
 @app.route('/positions')
 def positions():

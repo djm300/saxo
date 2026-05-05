@@ -4,7 +4,7 @@ import sys
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 saxo <portfolio|orders|follow|serve> [options]")
+        print("Usage: python3 saxo <positions|serve> [options]")
         raise SystemExit(2)
 
     command = sys.argv[1]

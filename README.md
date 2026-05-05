@@ -3,8 +3,8 @@ Python tools for Saxo Bank OpenAPI access.
 
 ## Layout
 
-- `cli/` - command-line portfolio, orders, and follow/TUI commands
-- `web/` - Flask app for auth and portfolio views
+- `cli/` - command-line positions command
+- `web/` - Flask app for auth and position views
 - `shared/` - auth, client, config, formatter, and account lookup helpers
 - `pyproject.toml` - packaging metadata and console scripts
 
@@ -25,8 +25,6 @@ The OAuth redirect page is published from GitHub Pages at:
 The Pages workflow publishes only `docs/oauth-redirect.html`, so that file is
 the source for the published redirect URL.
 
-In `params.json`, orders can be configured under `ORDERS`, with each order using `ORDER_SCHEDULE_TIME` and the API payload fields needed by Saxo.
-
 ## Install
 
 Editable install for local work:
@@ -45,9 +43,7 @@ That provides:
 Run the CLI entry point with:
 
 ```bash
-saxo-cli portfolio --format text
-saxo-cli orders --format json
-saxo-cli follow ASML
+saxo-cli positions --format text
 ```
 
 Useful flags:
@@ -83,7 +79,6 @@ It exposes routes for:
 
 - `/status`
 - `/authenticate`
-- `/portfolio`
 - `/positions`
 - `/positionstable`
 
@@ -105,4 +100,5 @@ The app binds to `0.0.0.0:5000` by default inside the container. Override with
 - Tokens default to `tokens.json`.
 - `SIMULATION_MODE=true` uses Saxo SIM endpoints.
 - `SIMULATION_MODE=false` uses Saxo LIVE endpoints.
+- Saxo OpenAPI access in this app is read-only; API helpers reject non-GET requests.
 - Keep `params.json` and `tokens.json` out of the image; mount them at runtime instead.
