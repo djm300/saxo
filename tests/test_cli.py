@@ -66,6 +66,21 @@ class TestOrderCommands(unittest.TestCase):
         with self.assertRaises(PermissionError):
             run(args, self.config, self.client)
 
+    def test_execute_cancel_calls_client(self):
+        self.config.trading_enabled = True
+        self.client.cancel_orders.return_value = {"Orders": []}
+        args = argparse.Namespace(
+            command="order",
+            order_action="cancel",
+            order_ids=["123", "456"],
+            account_key="account",
+            execute=True,
+            env=None,
+        )
+        result = run(args, self.config, self.client)
+        self.assertTrue(result["will_execute"])
+        self.client.cancel_orders.assert_called_once_with(["123", "456"], "account")
+
 
 class TestServeLifecycle(unittest.TestCase):
     def test_serve_parser_defaults_to_local_port(self):

@@ -51,8 +51,19 @@ class TestWeb(unittest.TestCase):
         raw = {
             "Data": [
                 {
-                    "PositionBase": {"AccountId": "A", "Uic": 1, "AssetType": "Stock", "Amount": 2},
-                    "PositionView": {"ProfitLossOnTrade": 3},
+                    "PositionBase": {
+                        "AccountId": "A",
+                        "Uic": 1,
+                        "AssetType": "Stock",
+                        "Amount": 2,
+                        "OpenPrice": 10,
+                    },
+                    "PositionView": {
+                        "ProfitLossOnTrade": 3,
+                        "InstrumentPriceDayPercentChange": 1.2,
+                        "CurrentPrice": 12,
+                        "MarketValue": 24,
+                    },
                 }
             ]
         }
@@ -65,6 +76,12 @@ class TestWeb(unittest.TestCase):
             response = self.client.get("/positionstable")
             self.assertEqual(response.status_code, 200)
             self.assertIn(b"ABC", response.data)
+            positions = self.client.get("/api/positions").get_json()["Data"]
+            self.assertEqual(positions[0]["purchase_price"], 10)
+            self.assertEqual(positions[0]["current_price"], 12)
+            self.assertEqual(positions[0]["total_value"], 24)
+            self.assertEqual(positions[0]["one_day_percent"], 1.2)
+            self.assertEqual(positions[0]["total_percent"], 15.0)
 
     def test_instrument_cache_and_background(self):
         cache = {}
@@ -114,6 +131,7 @@ class TestWeb(unittest.TestCase):
         response = self.client.get("/")
         self.assertIn(b"ticker-pill", response.data)
         self.assertIn(b"row.company_name", response.data)
+        self.assertEqual(response.data.count(b"const sell="), 1)
 
     def test_instrument_cache_expiry_refreshes_value(self):
         mock_client = MagicMock()
@@ -196,6 +214,37 @@ class TestWeb(unittest.TestCase):
                     "Uic": 1,
                 }
             )
+
+    def test_cancel_order_requires_trading_and_submits_cancel(self):
+        client = web_module.saxoclient
+        with (
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(client, "trading_enabled", False, create=True),
+        ):
+            response = self.client.post(
+                "/api/orders/cancel", json={"order_id": "123", "account_key": "A"}
+            )
+            self.assertEqual(response.status_code, 403)
+
+        with (
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(client, "trading_enabled", True, create=True),
+            patch.object(client, "cancel_orders", return_value={"Orders": []}),
+        ):
+            response = self.client.post(
+                "/api/orders/cancel", json={"order_id": "123", "account_key": "A"}
+            )
+            self.assertEqual(response.status_code, 200)
+            client.cancel_orders.assert_called_once_with(["123"], "A")
+
+    def test_cancel_order_validates_identifiers(self):
+        client = web_module.saxoclient
+        with (
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(client, "trading_enabled", True, create=True),
+        ):
+            response = self.client.post("/api/orders/cancel", json={"order_id": "123"})
+            self.assertEqual(response.status_code, 400)
 
     def test_server_reloader_only_runs_in_dev_mode(self):
         client = MagicMock()

@@ -203,6 +203,37 @@ def _positions(client, raw=None):
         metadata = _instrument_metadata(
             client, base.get("Uic"), base.get("AssetType"), cache
         )
+        amount = base.get("Amount")
+        purchase_price = next(
+            (base.get(key) or view.get(key) for key in ("OpenPrice", "PurchasePrice", "AverageOpenPrice")
+             if base.get(key) is not None or view.get(key) is not None),
+            None,
+        )
+        current_price = next(
+            (view.get(key) or base.get(key) for key in ("CurrentPrice", "MarketPrice", "Price")
+             if view.get(key) is not None or base.get(key) is not None),
+            None,
+        )
+        profit_loss = view.get("ProfitLossOnTrade")
+        market_value = next(
+            (view.get(key) for key in ("MarketValue", "MarketValueInBaseCurrency", "Exposure")
+             if view.get(key) is not None),
+            None,
+        )
+        if market_value is None and current_price is not None and amount is not None:
+            market_value = abs(float(amount)) * float(current_price)
+        total_percent = next(
+            (view.get(key) for key in ("ProfitLossOnTradeInPercent", "ProfitLossPercent", "TotalProfitLossPercent")
+             if view.get(key) is not None),
+            None,
+        )
+        if total_percent is None and profit_loss is not None and purchase_price and amount:
+            total_percent = float(profit_loss) / (abs(float(purchase_price)) * abs(float(amount))) * 100
+        one_day_percent = next(
+            (view.get(key) for key in ("InstrumentPriceDayPercentChange", "OneDayProfitLossPercent", "DailyProfitLossPercent", "DayChangePercent", "ChangePercent")
+             if view.get(key) is not None),
+            None,
+        )
         return {
             "account_id": base.get("AccountId"),
             "account_key": base.get("AccountKey") or base.get("AccountId"),
@@ -210,8 +241,13 @@ def _positions(client, raw=None):
             "name": metadata["symbol"],
             "company_name": metadata["company_name"],
             "asset_type": base.get("AssetType"),
-            "amount": base.get("Amount"),
-            "profit_loss": view.get("ProfitLossOnTrade"),
+            "amount": amount,
+            "one_day_percent": one_day_percent,
+            "total_percent": total_percent,
+            "purchase_price": purchase_price,
+            "current_price": current_price,
+            "total_value": market_value,
+            "profit_loss": profit_loss,
         }
 
     # Instrument detail requests are independent; parallelizing them avoids
@@ -286,7 +322,7 @@ def _compact_order(row):
         "OrderPrice": row.get("OrderPrice", row.get("Price")),
         "ActivityTime": row.get("ActivityTime"),
         "OrderId": row.get("OrderId"),
-        "AccountKey": row.get("AccountKey"),
+        "AccountKey": row.get("AccountKey") or row.get("AccountId"),
         "FilledAmount": row.get("FilledAmount", row.get("FillAmount")),
         "AveragePrice": row.get("AveragePrice"),
     }

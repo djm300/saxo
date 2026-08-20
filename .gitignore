@@ -45,3 +45,4 @@ nosetests.xml
 # Editor/OS files that should not become project source
 .idea/
 .vscode/*.code-workspace
+MagicMock/mock.token_file/*
