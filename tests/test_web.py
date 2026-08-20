@@ -90,6 +90,31 @@ class TestWeb(unittest.TestCase):
             web_module.start_background_tasks()
             web_module.stop_background_tasks()
 
+    def test_instrument_metadata_is_cached_for_company_tooltips(self):
+        mock_client = MagicMock()
+        mock_client.auth_client.token_file = "tokens.json"
+        mock_client.auth_client.baseurl = "https://example.test/sim"
+        mock_client.get_instrument_by_uic.return_value = {
+            "Symbol": "ASML:xams",
+            "Description": "ASML Holding NV",
+        }
+        rows = [{"Uic": 1, "AssetType": "Stock"}]
+        with tempfile.TemporaryDirectory() as directory:
+            cache_path = Path(directory) / "instruments.json"
+            with patch.object(web_module, "_instrument_cache_path", return_value=cache_path):
+                first = web_module._enrich_order_rows(mock_client, rows)
+                second = web_module._enrich_order_rows(mock_client, rows)
+
+        self.assertEqual(first[0]["instrument"], "ASML:xams")
+        self.assertEqual(first[0]["company_name"], "ASML Holding NV")
+        self.assertEqual(second[0]["company_name"], "ASML Holding NV")
+        self.assertEqual(mock_client.get_instrument_by_uic.call_count, 1)
+
+    def test_dashboard_renders_ticker_pills_with_company_tooltips(self):
+        response = self.client.get("/")
+        self.assertIn(b"ticker-pill", response.data)
+        self.assertIn(b"row.company_name", response.data)
+
     def test_instrument_cache_expiry_refreshes_value(self):
         mock_client = MagicMock()
         mock_client.auth_client.baseurl = "https://example.test/sim"
