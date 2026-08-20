@@ -286,6 +286,7 @@ def _compact_order(row):
         "OrderPrice": row.get("OrderPrice", row.get("Price")),
         "ActivityTime": row.get("ActivityTime"),
         "OrderId": row.get("OrderId"),
+        "AccountKey": row.get("AccountKey"),
         "FilledAmount": row.get("FilledAmount", row.get("FillAmount")),
         "AveragePrice": row.get("AveragePrice"),
     }
@@ -467,6 +468,35 @@ def sell_position():
         "sell_submitted", uic=uic, amount=amount, account_key=account_key, response=response
     )
     return jsonify({"message": "Sell order submitted.", "order": order, "response": response}), 201
+
+
+@app.route("/api/orders/cancel", methods=["POST"])
+def cancel_order():
+    client = _require_client()
+    payload = request.get_json(silent=True) or {}
+    _log_order_activity("cancel_requested", payload=payload)
+    if not getattr(client, "trading_enabled", False):
+        _log_order_activity("cancel_rejected", reason="trading_disabled")
+        return jsonify(
+            {"error": "Trading is disabled. Set TRADING_ENABLED=true to cancel orders."}
+        ), 403
+    order_id = str(payload.get("order_id") or "").strip()
+    account_key = str(payload.get("account_key") or "").strip()
+    if not order_id or not account_key:
+        _log_order_activity("cancel_rejected", reason="invalid_payload")
+        return jsonify({"error": "order_id and account_key are required."}), 400
+    try:
+        response = client.cancel_orders([order_id], account_key)
+    except Exception as exc:
+        _log_order_activity(
+            "cancel_failed", order_id=order_id, account_key=account_key, error=str(exc)
+        )
+        logger.exception("Failed to cancel order %s", order_id)
+        return jsonify({"error": str(exc)}), 502
+    _log_order_activity(
+        "cancel_submitted", order_id=order_id, account_key=account_key, response=response
+    )
+    return jsonify({"message": "Cancel request submitted.", "response": response}), 200
 
 
 @app.route("/positions")
