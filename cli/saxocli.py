@@ -8,6 +8,7 @@ import os
 import sys
 from datetime import datetime, timezone
 
+from shared.client import AuthenticationError, RateLimitError, SaxoAPIError
 from shared.domain import (
     first,
     normalize_account,
@@ -16,7 +17,7 @@ from shared.domain import (
     normalize_quote,
     portfolio_summary,
 )
-from shared.runtime import create_client, ensure_authenticated, load_runtime_config
+from shared.runtime import AuthenticationSession, create_client, load_runtime_config
 
 
 def parse_args(argv=None):
@@ -30,6 +31,18 @@ def parse_args(argv=None):
         p = sub.add_parser(name)
         p.add_argument("--format", choices=["json", "text"], default=None)
         p.add_argument("--json", action="store_true", dest="json_output")
+        if name == "orders":
+            p.add_argument(
+                "--history",
+                action="store_true",
+                help="Show order activities instead of working orders",
+            )
+    history = sub.add_parser(
+        "order-history", aliases=["orderhistory"], help="Show today’s order activities"
+    )
+    history.add_argument("--limit", type=int, default=200)
+    history.add_argument("--format", choices=["json", "text"], default=None)
+    history.add_argument("--json", action="store_true", dest="json_output")
     p = sub.add_parser("position")
     p.add_argument("symbol")
     p.add_argument("--json", action="store_true", dest="json_output")
@@ -40,6 +53,23 @@ def parse_args(argv=None):
     p = sub.add_parser("quote")
     p.add_argument("symbol")
     p.add_argument("--json", action="store_true", dest="json_output")
+    order = sub.add_parser("order")
+    order_sub = order.add_subparsers(dest="order_action", required=True)
+    place = order_sub.add_parser("place", help="Preview or place a market/limit order")
+    place.add_argument("symbol")
+    place.add_argument("--side", choices=["buy", "sell"], required=True)
+    place.add_argument("--quantity", type=float, required=True)
+    place.add_argument("--type", choices=["market", "limit"], required=True)
+    place.add_argument("--limit", type=float)
+    place.add_argument("--account-key")
+    place.add_argument("--duration", default="DayOrder")
+    place.add_argument("--execute", action="store_true")
+    place.add_argument("--json", action="store_true", dest="json_output")
+    cancel = order_sub.add_parser("cancel", help="Preview or cancel open orders")
+    cancel.add_argument("order_ids", nargs="+")
+    cancel.add_argument("--account-key", required=True)
+    cancel.add_argument("--execute", action="store_true")
+    cancel.add_argument("--json", action="store_true", dest="json_output")
     p = sub.add_parser("options")
     p.add_argument("symbol")
     p.add_argument("--expiry")
@@ -55,6 +85,12 @@ def parse_args(argv=None):
     p.add_argument("--json", action="store_true", dest="json_output")
     auth = sub.add_parser("auth")
     auth.add_argument("action", choices=["status", "login", "logout"])
+    serve = sub.add_parser("serve", help="Start the local web server")
+    serve.add_argument("--host", default=os.getenv("SAXO_HOST", "127.0.0.1"))
+    serve.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")))
+    serve.add_argument(
+        "--dev", action="store_true", help="Disable the web secret (local development only)"
+    )
     return parser.parse_args(argv)
 
 
@@ -144,8 +180,15 @@ def run(args, config, client):
             build_positions_payload(client, env)["positions"],
             run(argparse.Namespace(command="balances", env=None), config, client),
         )
+    if args.command == "orders" and getattr(args, "history", False):
+        return {"environment": env, "order_history": _data(client.get_order_history(today=True))}
     if args.command == "orders":
         return {"environment": env, "orders": _data(client.get_orders())}
+    if args.command in {"order-history", "orderhistory"}:
+        return {
+            "environment": env,
+            "order_history": _data(client.get_order_history(args.limit, today=True)),
+        }
     if args.command == "instrument":
         matches = _data(client.search_instruments(args.query, args.asset_type))
         return {
@@ -171,6 +214,57 @@ def run(args, config, client):
         return normalize_quote(
             raw, first(match, "Symbol", default=args.symbol), first(match, "Currency")
         )
+    if args.command == "order":
+        if args.order_action == "place":
+            if args.type == "limit" and args.limit is None:
+                raise ValueError("--limit is required for limit orders")
+            if args.type == "market" and args.limit is not None:
+                raise ValueError("--limit is only valid for limit orders")
+            match = _resolve(client, args.symbol, "Stock")
+            account = (_data(client.get_accounts()) or [{}])[0]
+            account_key = args.account_key or first(account, "AccountKey", "AccountId")
+            order_payload = {
+                "AccountKey": account_key,
+                "Amount": args.quantity,
+                "AssetType": first(match, "AssetType", default="Stock"),
+                "BuySell": args.side.capitalize(),
+                "ManualOrder": True,
+                "OrderDuration": {"DurationType": args.duration},
+                "OrderType": args.type.capitalize(),
+                "Uic": first(match, "Identifier", "Uic"),
+            }
+            if args.limit is not None:
+                order_payload["OrderPrice"] = args.limit
+            if not args.execute:
+                return {
+                    "environment": env,
+                    "will_execute": False,
+                    "order": order_payload,
+                    "request": {**order_payload, "WithAdvice": False},
+                }
+            if not config.trading_enabled:
+                raise PermissionError(
+                    "Trading is disabled. Set TRADING_ENABLED=true to execute orders."
+                )
+            return {
+                "environment": env,
+                "will_execute": True,
+                "response": client.place_order(order_payload),
+            }
+        if not args.execute:
+            return {
+                "environment": env,
+                "will_execute": False,
+                "order_ids": args.order_ids,
+                "account_key": args.account_key,
+            }
+        if not config.trading_enabled:
+            raise PermissionError("Trading is disabled. Set TRADING_ENABLED=true to cancel orders.")
+        return {
+            "environment": env,
+            "will_execute": True,
+            "response": client.cancel_orders(args.order_ids, args.account_key),
+        }
     raise ValueError(f"Unsupported command: {args.command}")
 
 
@@ -180,8 +274,11 @@ def main(argv=None):
         level=logging.INFO if args.verbose else logging.WARNING,
         format="[%(levelname)s] %(message)s",
     )
+    session = None
     try:
         config = load_runtime_config(args.params, environment=args.env)
+        if getattr(config, "trading_enabled", False):
+            logging.warning("WARNING: TRADING_ENABLED is true. Live order execution is enabled.")
         client = create_client(config)
         if args.command == "auth":
             environment = "sim" if config.simulation_mode else "live"
@@ -197,8 +294,23 @@ def main(argv=None):
                 if os.path.exists(token_path):
                     os.remove(token_path)
                 result = {"environment": environment, "authenticated": False}
+        elif args.command == "serve":
+            session = AuthenticationSession(client, config.token_refresh_interval_seconds)
+            session.authenticate()
+            from web.app import startSaxoServer
+
+            session.start_refresh()
+            server_args = {
+                "client": client,
+                "runtime_config": config,
+                "host": args.host,
+                "port": args.port,
+                "dev": args.dev,
+            }
+            return startSaxoServer(**server_args) or 0
         else:
-            ensure_authenticated(client)
+            session = AuthenticationSession(client, config.token_refresh_interval_seconds)
+            session.authenticate()
             result = run(args, config, client)
         print(json.dumps(result, indent=2, default=str))
         return 0
@@ -208,12 +320,24 @@ def main(argv=None):
     except ValueError as exc:
         code, name = 4, "ambiguous_instrument"
         error_message = str(exc)
-    except (ConnectionError, RuntimeError) as exc:
+    except AuthenticationError as exc:
+        code, name = 2, "authentication_required"
+        error_message = str(exc)
+    except RateLimitError as exc:
+        code, name = 7, "rate_limit"
+        error_message = str(exc)
+    except SaxoAPIError as exc:
+        code, name = 8, "saxo_api_error"
+        error_message = str(exc)
+    except RuntimeError as exc:
         code, name = 2, "authentication_required"
         error_message = str(exc)
     except Exception as exc:
         code, name = 1, "error"
         error_message = str(exc)
+    finally:
+        if session is not None:
+            session.close()
     print(json.dumps({"error": {"code": name, "message": error_message}}), file=sys.stdout)
     return code
 

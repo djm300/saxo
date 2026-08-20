@@ -30,7 +30,6 @@ test = [
 
 [project.scripts]
 saxo-cli = "cli.saxocli:main"
-saxo-web = "web.app:startSaxoServer"
 
 [tool.setuptools]
 include-package-data = true

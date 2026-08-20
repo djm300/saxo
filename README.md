@@ -4,7 +4,7 @@ Python tools for Saxo Bank OpenAPI access.
 ## Layout
 
 - `cli/` - command-line positions command
-- `web/` - Flask app for auth and position views
+- `web/` - Flask app for position views
 - `shared/` - authentication, client, runtime configuration, normalization, and formatting helpers
 - `scripts/` - local linting, coverage, and standalone-binary build helpers
 - `pyproject.toml` - packaging metadata and console scripts
@@ -18,6 +18,9 @@ Common values:
 - `REDIRECT_URI`
 - `SIMULATION_MODE`
 - `TOKEN_FILE`
+- `TRADING_ENABLED`
+- `SAXO_WEB_SECRET`
+- `SAXO_INSTRUMENT_CACHE`
 
 The OAuth redirect page is published from GitHub Pages at:
 
@@ -37,7 +40,7 @@ pip install -e ".[cli]"
 That provides:
 
 - `saxo-cli` for the command-line utility
-- `saxo-web` for the Flask app
+- `saxo-cli serve` for the Flask app
 
 ## CLI
 
@@ -52,11 +55,10 @@ Useful flags:
 - `--params PATH` to read a different config file
 - `--verbose` to enable informational logs
 
-The CLI is read-only and JSON-first. It includes `account`, `balances`, `portfolio`,
-`positions`, `position`, `orders`, `instrument`, and `quote`. `--env sim|live`
-selects the explicitly requested Saxo environment; no order execution command is
-provided. Saxo option-chain endpoints vary by account permissions and are kept out
-of the initial normalized layer until a representative API response is available.
+The CLI is JSON-first. It includes `account`, `balances`, `portfolio`,
+`positions`, `position`, `orders`, `order-history`, `instrument`, `quote`, and
+explicit order preview/execution commands. `--env sim|live` selects the Saxo
+environment. Actual writes require both `--execute` and `TRADING_ENABLED=true`.
 
 See [docs/CLI.md](docs/CLI.md) for colored command examples, JSON output, exit
 codes, and platform-specific credential storage locations.
@@ -93,6 +95,31 @@ For a checkout without installing the package, use the repository launcher
 (`saxo-cli.cmd` on Windows or `./saxo-cli` on Unix). If the installed package or
 binary directory is on `PATH`, the same command works from any directory.
 
+## Simulation smoke test
+
+Run the CLI smoke test against simulation. It requires a valid simulation token;
+if one is not available, it starts the normal interactive CLI login flow:
+
+```bash
+python scripts/smoke_test.py
+```
+
+The script forces `SIMULATION_MODE=True`, passes `--env sim` to every command,
+and treats any authentication-required response as a failure. It never falls
+back to live authentication. The smoke test intentionally runs the Python CLI
+source (`python -m cli`), not the compiled executable. The `serve` command is
+not included because a successful server command is intentionally long-running.
+
+To perform a real simulation write test, explicitly opt in:
+
+```bash
+python scripts/smoke_test.py --execute-orders
+```
+
+This places one deliberately low-priced ASR limit order in the simulation account
+and immediately cancels it. The flag forces `TRADING_ENABLED=True` only in the
+smoke-test subprocess; live mode is never permitted.
+
 ## Test coverage
 
 Run the suite with line coverage reporting via the standard library:
@@ -124,18 +151,33 @@ Ruff settings live in `pyproject.toml`. The wrapper also works on Windows with
 
 ## Web app
 
-Start the Flask app with:
+Start the Flask app through the CLI:
 
 ```bash
-saxo-web
+saxo-cli serve
 ```
+
+The CLI authenticates first using the normal terminal token prompt and passes
+the authenticated client to the web app. The dashboard shows positions, working
+orders, today's order history, and token lifetimes. It has no login flow of its
+own. Normal mode prints a URL protected by a generated `?secret=...` value;
+`SAXO_WEB_SECRET` supplies a stable value. `saxo-cli serve --dev` disables this
+check and enables hot reload for trusted local development.
 
 It exposes routes for:
 
 - `/status`
-- `/authenticate`
 - `/positions`
 - `/positionstable`
+- `/api/positions`
+- `/api/orders`
+- `/api/order-history`
+- `/api/status`
+
+Position instrument names are cached for five days in `instrument-cache.json`
+beside the configured token file. The file is shared safely by concurrent web
+server/reloader processes and keeps SIM/LIVE entries separate. Set
+`SAXO_INSTRUMENT_CACHE` to choose another path.
 
 Container example:
 
@@ -155,5 +197,5 @@ The app binds to `0.0.0.0:5000` by default inside the container. Override with
 - Tokens default to a per-user OS credential location; see [docs/CLI.md](docs/CLI.md).
 - `SIMULATION_MODE=true` uses Saxo SIM endpoints.
 - `SIMULATION_MODE=false` uses Saxo LIVE endpoints.
-- Saxo OpenAPI access in this app is read-only; API helpers reject non-GET requests.
+- Trading mutations require `TRADING_ENABLED=true` and an explicit execution action.
 - Keep credentials out of `params.json`, the image, and source control.

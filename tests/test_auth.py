@@ -138,6 +138,54 @@ class TestAuthorizationCodeClient(unittest.TestCase):
         mock_save_tokens.assert_not_called()
         self.assertIsNone(result)
 
+    @patch("shared.auth.time.time", return_value=1000)
+    def test_pkce_token_expiry_and_save(self, _time):
+        verifier = self.auth_client._generate_code_verifier()
+        self.assertTrue(verifier)
+        self.assertEqual(len(self.auth_client._generate_code_challenge(verifier)), 43)
+        self.assertTrue(self.auth_client._is_access_token_expired())
+        self.auth_client.tokens = {"access_token_expires_at": "bad"}
+        self.assertTrue(self.auth_client._is_access_token_expired())
+        self.auth_client.tokens = {
+            "access_token_expires_at": 2000,
+            "refresh_token_expires_at": 2000,
+        }
+        self.assertFalse(self.auth_client._is_access_token_expired())
+        self.assertFalse(self.auth_client._is_refresh_token_expired())
+        data = {"access_token": "x", "expires_in": 10, "refresh_token_expires_in": 20}
+        file_mock = unittest.mock.mock_open()
+        file_mock.return_value.__enter__.return_value.fileno.return_value = 1
+        with (
+            patch("os.fdopen", file_mock),
+            patch("os.fsync"),
+            patch("os.replace"),
+            patch("os.path.exists", return_value=False),
+        ):
+            self.auth_client._save_tokens(data)
+        self.assertIn("access_token_expires_at", data)
+
+    def test_authorization_reuse_and_refresh_variants(self):
+        first = self.auth_client.get_authorization_url(scope="read")
+        second = self.auth_client.get_authorization_url(scope="read")
+        self.assertEqual(first, second)
+        self.auth_client.tokens = {
+            "refresh_token": "old",
+            "code_verifier": "cv",
+            "refresh_token_expires_at": 9999999999,
+        }
+        response = MagicMock(status_code=201)
+        response.json.return_value = {
+            "access_token": "new",
+            "refresh_token": "new-refresh",
+            "refresh_token_expires_in": 10,
+        }
+        with patch("shared.auth.requests.post", return_value=response):
+            result = self.auth_client.refresh_token()
+        self.assertEqual(result["refresh_token"], "new-refresh")
+        response = MagicMock(status_code=500, text="bad")
+        with patch("shared.auth.requests.post", return_value=response):
+            self.assertIsNone(self.auth_client.refresh_token())
+
 
 class TestDecorator(unittest.TestCase):
     @handle_oauth_errors

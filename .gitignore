@@ -1,6 +1,7 @@
 # Local credentials and runtime data
 tokens*.json
 *_tokens*.json
+.saxo-token-*
 *.pem
 *.key
 app.log

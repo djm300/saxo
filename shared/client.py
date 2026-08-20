@@ -1,12 +1,25 @@
 import logging
 import threading
+from datetime import datetime, timedelta, timezone
 
 import requests  # Import the requests library
 
-from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime
+from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime, token_file_lock
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
+
+
+class AuthenticationError(ConnectionError):
+    """The API rejected the request because credentials are unavailable/invalid."""
+
+
+class RateLimitError(ConnectionError):
+    """The API rate limit was exceeded."""
+
+
+class SaxoAPIError(ConnectionError):
+    """A non-authentication Saxo API failure."""
 
 
 class SaxoClient:
@@ -27,9 +40,12 @@ class SaxoClient:
         token_file="tokens.json",
         scope="required_scope",
         baseurl="https://gateway.saxobank.com/sim/openapi",
+        trading_enabled=False,
     ):
         """Initialize the SaxoClient with authentication and service clients."""
         self._state = self.STATE_NOT_AUTHENTICATED  # Initial state
+        self._refresh_lock = threading.Lock()
+        self.trading_enabled = trading_enabled
         self.auth_client = AuthorizationCodeClient(
             client_id=client_id,
             redirect_uri=redirect_uri,
@@ -87,7 +103,8 @@ class SaxoClient:
         """Exchange authorization code for tokens."""
         self.transition(self.STATE_WAITING_FOR_TOKEN)
         try:
-            tokens = self.auth_client.get_token(code)
+            with token_file_lock(self.auth_client.token_file):
+                tokens = self.auth_client.get_token(code)
             if tokens and self.auth_client.tokens.get("access_token"):
                 self.transition(self.STATE_AUTHENTICATED)
             else:
@@ -99,19 +116,47 @@ class SaxoClient:
 
     def refresh_token(self):
         """Refresh the access token."""
-        self.transition(self.STATE_REFRESHING)
+        # A request and a long-running serve session can notice expiry at the
+        # same time. Serialize refreshes to avoid rotating tokens concurrently.
+        with self._refresh_lock:
+            with token_file_lock(self.auth_client.token_file):
+                # Another process may have refreshed while this process was
+                # waiting for the lock. Prefer its fresh token.
+                latest_tokens = self.auth_client._load_tokens()
+                if isinstance(latest_tokens, dict) and latest_tokens:
+                    self.auth_client.tokens = latest_tokens
+                    if not self.auth_client._is_access_token_expired():
+                        self.transition(self.STATE_AUTHENTICATED)
+                        return latest_tokens
+                self.transition(self.STATE_REFRESHING)
+                try:
+                    refreshed_tokens = self.auth_client.refresh_token()
+                    if refreshed_tokens and self.auth_client.tokens.get("access_token"):
+                        self.transition(self.STATE_AUTHENTICATED)
+                    else:
+                        logger.warning("Token refresh did not return usable tokens.")
+                        self.transition(self.STATE_NOT_AUTHENTICATED)
+                    return refreshed_tokens
+                except Exception as e:
+                    logger.error(f"Failed to refresh token: {e}")
+                    # Authentication policy belongs to the runtime session; do
+                    # not initiate an interactive flow from a refresh operation.
+                    self.transition(self.STATE_NOT_AUTHENTICATED)
+                    raise
+
+    def ensure_access_token(self):
+        """Ensure a usable access token exists, refreshing it when necessary."""
+        if self.auth_client.tokens and not self.auth_client._is_access_token_expired():
+            self.transition(self.STATE_AUTHENTICATED)
+            return
+
         try:
-            refreshed_tokens = self.auth_client.refresh_token()
-            if refreshed_tokens and self.auth_client.tokens.get("access_token"):
-                self.transition(self.STATE_AUTHENTICATED)
-            else:
-                logger.warning("Token refresh did not return usable tokens.")
-                self.transition(self.STATE_NOT_AUTHENTICATED)
-            return refreshed_tokens
-        except Exception as e:
-            logger.error(f"Failed to refresh token: {e}")
-            self.transition(self.STATE_ERROR)
-            raise
+            refreshed_tokens = self.refresh_token()
+        except Exception as exc:
+            raise AuthenticationError("Authentication token refresh failed.") from exc
+        if not refreshed_tokens or not self.auth_client.tokens.get("access_token"):
+            self.transition(self.STATE_NOT_AUTHENTICATED)
+            raise AuthenticationError("Authentication token is unavailable or expired.")
 
     def _is_authenticated(self):
         """Check if the client is authenticated."""
@@ -158,14 +203,12 @@ class SaxoClient:
             if self.auth_client._is_access_token_expired():
                 logger.info("Access token expired or about to expire; refreshing...")
                 self.transition(self.STATE_REFRESHING)
-                refreshed = self.auth_client.refresh_token()
-                if refreshed:
+                try:
+                    self.ensure_access_token()
                     logger.info("Token refresh successful.")
-                    self.transition(self.STATE_AUTHENTICATED)
-                else:
-                    logger.error("Token refresh failed; user re-authorization required.")
-                    self.get_authorization_url()
-                    self.transition(self.STATE_WAITING_FOR_AUTHORIZATION_CODE)
+                except AuthenticationError:
+                    logger.error("Token refresh failed; user re-authorization is required.")
+                    break
             else:
                 expires_at = self.auth_client.tokens.get("access_token_expires_at", 0)
                 self.transition(self.STATE_AUTHENTICATED)
@@ -183,20 +226,18 @@ class SaxoClient:
         Handles base URL, authorization headers, and response parsing.
         """
         method = method.upper()
-        if method != "GET":
-            raise PermissionError("This Saxo client is read-only and only allows GET API requests.")
+        if method != "GET" and not self.trading_enabled:
+            raise PermissionError(
+                "Trading is disabled. Set TRADING_ENABLED=true and use --execute."
+            )
 
         if not self.auth_client.tokens or self.auth_client._is_access_token_expired():
             logger.warning("Token expired or not found. Attempting to refresh.")
             try:
-                refreshed_tokens = self.refresh_token()
-                if not refreshed_tokens or not self.auth_client.tokens.get("access_token"):
-                    raise ConnectionError(
-                        "Authentication required. Run interactive authorization to obtain a token."
-                    )
+                self.ensure_access_token()
             except Exception as e:
                 logger.error(f"Failed to refresh token: {e}")
-                self.transition(self.STATE_ERROR)
+                self.transition(self.STATE_NOT_AUTHENTICATED)
                 raise ConnectionError(
                     "Authentication token is invalid or expired, and refresh failed."
                 ) from e
@@ -220,9 +261,20 @@ class SaxoClient:
             # logger.debug(f"Response Content: {response.content}")
             response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            status_code = getattr(response, "status_code", None)
+            if status_code in (401, 403):
+                raise AuthenticationError("Saxo authentication was rejected.") from e
+            if status_code == 429:
+                raise RateLimitError("Saxo API rate limit exceeded.") from e
+            detail = getattr(response, "text", "")
+            raise SaxoAPIError(
+                f"Saxo API request failed with HTTP {status_code}: {endpoint}"
+                + (f" - {detail[:500]}" if detail else "")
+            ) from e
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
-            raise ConnectionError(f"API request to {url} failed.") from e
+            raise SaxoAPIError(f"API request to {url} failed.") from e
 
     def get_positions(self):
         """Get current positions."""
@@ -246,7 +298,28 @@ class SaxoClient:
 
     def get_orders(self):
         return self._make_api_request(
-            "GET", "/cs/v1/orders", params={"FieldGroups": "DisplayAndFormats"}
+            "GET", "/port/v1/orders/me", params={"FieldGroups": "DisplayAndFormat"}
+        )
+
+    def get_order_history(self, limit=200, today=True):
+        """Get historical order activities, optionally limited to the local day."""
+        params = {"EntryType": "All", "$top": limit, "FieldGroups": "DisplayAndFormat"}
+        if today:
+            local_now = datetime.now().astimezone()
+            start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = start + timedelta(days=1) - timedelta(microseconds=1)
+            params.update(
+                {
+                    "FromDateTime": start.astimezone(timezone.utc)
+                    .isoformat()
+                    .replace("+00:00", "Z"),
+                    "ToDateTime": end.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+                }
+            )
+        return self._make_api_request(
+            "GET",
+            "/cs/v1/audit/orderactivities",
+            params=params,
         )
 
     def search_instruments(self, query, asset_type=None):
@@ -260,3 +333,14 @@ class SaxoClient:
         if account_key:
             params["AccountKey"] = account_key
         return self._make_api_request("GET", "/trade/v1/infoprices", params=params)
+
+    def place_order(self, order):
+        request = dict(order)
+        request["WithAdvice"] = False
+        return self._make_api_request("POST", "/trade/v2/orders", data=request)
+
+    def cancel_orders(self, order_ids, account_key):
+        ids = ",".join(str(order_id) for order_id in order_ids)
+        return self._make_api_request(
+            "DELETE", f"/trade/v2/orders/{ids}", params={"AccountKey": account_key}
+        )

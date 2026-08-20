@@ -5,6 +5,8 @@ import logging
 import os
 import tempfile
 import time
+from contextlib import contextmanager
+from pathlib import Path
 
 import requests
 
@@ -12,6 +14,44 @@ import requests
 # Logging setup
 # ==============================
 logger = logging.getLogger()
+
+
+@contextmanager
+def token_file_lock(token_file):
+    """Serialize token mutations across CLI processes."""
+    if not isinstance(token_file, (str, os.PathLike)):
+        yield
+        return
+    token_path = Path(os.path.abspath(os.path.expanduser(token_file)))
+    lock_path = token_path.with_name(token_path.name + ".lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(lock_path, "a+b") as lock_handle:
+        if os.name == "nt":
+            import msvcrt
+
+            lock_handle.seek(0)
+            lock_handle.write(b"0")
+            lock_handle.flush()
+            while True:
+                try:
+                    lock_handle.seek(0)
+                    msvcrt.locking(lock_handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(0.1)
+            try:
+                yield
+            finally:
+                lock_handle.seek(0)
+                msvcrt.locking(lock_handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(lock_handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_handle.fileno(), fcntl.LOCK_UN)
 
 
 # ==============================
@@ -87,6 +127,7 @@ class AuthorizationCodeClient(OAuth2Client):
         self.code_verifier = None
         self.code_challenge = None
         self.token_file = token_file
+        self._cleanup_stale_token_temps()
         self.tokens = self._load_tokens() or {}
 
         # Check if token is expired and attempt refresh
@@ -121,6 +162,18 @@ class AuthorizationCodeClient(OAuth2Client):
         return challenge
 
     # --- Token storage ---
+    def _cleanup_stale_token_temps(self, max_age_seconds=3600):
+        """Remove abandoned atomic-write files left by interrupted processes."""
+        token_path = Path(os.path.abspath(os.path.expanduser(self.token_file)))
+        directory = token_path.parent
+        cutoff = time.time() - max_age_seconds
+        for temporary_path in directory.glob(".saxo-token-*"):
+            try:
+                if temporary_path.is_file() and temporary_path.stat().st_mtime < cutoff:
+                    temporary_path.unlink()
+            except OSError:
+                logger.debug("Could not remove stale token temporary file: %s", temporary_path)
+
     # Since expires_in is relative, we compute absolute expiry time when saving
     # and store that as access_token_expires_at (epoch seconds).
     # and remove expires_in from the stored data.
@@ -169,6 +222,7 @@ class AuthorizationCodeClient(OAuth2Client):
         fd, temporary_path = tempfile.mkstemp(
             prefix=".saxo-token-", dir=os.path.dirname(token_path), text=True
         )
+        descriptor = fd
         try:
             with os.fdopen(fd, "w") as f:
                 json.dump(token_data, f, indent=2)
@@ -180,8 +234,19 @@ class AuthorizationCodeClient(OAuth2Client):
                 pass
             os.replace(temporary_path, token_path)
         finally:
-            if os.path.exists(temporary_path):
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError:
+                    pass
+            try:
+                # Attempt removal directly. This remains reliable even when
+                # os.path.exists is mocked or the atomic replace already ran.
                 os.unlink(temporary_path)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                logger.debug("Could not remove temporary token file: %s", temporary_path)
         try:
             os.chmod(token_path, 0o600)
         except OSError:

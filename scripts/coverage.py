@@ -49,7 +49,13 @@ def main(argv: list[str] | None = None) -> int:
     tracer = Trace(count=True, trace=False, ignoredirs=_ignored_dirs())
     exit_code = tracer.runfunc(pytest.main, args)
     COVERDIR.mkdir(parents=True, exist_ok=True)
-    tracer.results().write_results(show_missing=True, summary=True, coverdir=str(COVERDIR))
+    results = tracer.results()
+    # Flask/Jinja can make ``trace`` see template files.  They are not Python
+    # source and the stdlib reporter attempts to compile them as Python.
+    results.counts = {
+        key: counts for key, counts in results.counts.items() if key[0].endswith(".py")
+    }
+    results.write_results(show_missing=True, summary=True, coverdir=str(COVERDIR))
     return int(exit_code or 0)
 
 

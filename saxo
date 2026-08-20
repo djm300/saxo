@@ -4,28 +4,19 @@ import sys
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 saxo <positions|serve> [options]")
+        print("Usage: python3 saxo <command> [options]")
         raise SystemExit(2)
 
-    command = sys.argv[1]
-    if command == "serve":
-        try:
-            from web.app import startSaxoServer
-        except ImportError as exc:
-            raise SystemExit(f"Missing dependency for web mode: {exc}")
-
-        startSaxoServer()
-        return
-
-    # Re-dispatch to CLI parser using the same unified entrypoint.
+    # Re-dispatch every command, including ``serve``, through the unified CLI
+    # so authentication happens before the web server is started.
     sys.argv = [sys.argv[0]] + sys.argv[1:]
     try:
         from cli.saxocli import main as cli_main
     except ImportError as exc:
         raise SystemExit(f"Missing dependency for CLI mode: {exc}")
 
-    cli_main()
+    return cli_main()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

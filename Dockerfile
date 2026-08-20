@@ -16,4 +16,4 @@ RUN pip install --upgrade pip && pip install ".[cli]"
 
 EXPOSE 5000
 
-CMD ["saxo-web"]
+CMD ["saxo-cli", "serve", "--host", "0.0.0.0"]

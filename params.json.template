@@ -6,5 +6,6 @@
     "SIM_CLIENT_ID": "YOUR_SIM_CLIENT_ID",
     "LIVE_AUTH_ENDPOINT": "https://live.logonvalidation.net/authorize",
     "LIVE_TOKEN_ENDPOINT": "https://live.logonvalidation.net/token",
+    "TRADING_ENABLED": "False",
     "LIVE_CLIENT_ID": "YOUR_LIVE_CLIENT_ID"
 }

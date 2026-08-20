@@ -1,134 +1,34 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Positions</title>
-    <style>
-        /* Page background */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
-            color: #f0f0f0;
-            margin: 0;
-            padding: 40px 0;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-            font-weight: 700;
-            font-size: 2.8rem;
-            letter-spacing: 2px;
-            text-shadow: 0 0 8px #6ec1e4, 0 0 12px #48a9e6;
-        }
-
-        table {
-            border-collapse: collapse;
-            width: 80%;
-            max-width: 900px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            overflow: hidden;
-            animation: fadeIn 1.2s ease forwards;
-        }
-
-        thead tr {
-            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-size: 0.9rem;
-            box-shadow: inset 0 -4px 8px rgba(0,0,0,0.2);
-        }
-
-        th, td {
-            padding: 14px 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            transition: background-color 0.3s ease;
-        }
-
-        tbody tr:hover {
-            background-color: rgba(255, 255, 255, 0.15);
-            cursor: pointer;
-            transform: scale(1.02);
-            transition: transform 0.3s ease, background-color 0.3s ease;
-        }
-
-        tbody tr:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-
-        /* Sparkling animation for Amount cells */
-        td.amount {
-            position: relative;
-            font-weight: 700;
-            color: #a0e7e5;
-            overflow: hidden;
-        }
-        td.amount::after {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            animation: sparkle 2.5s infinite ease-in-out;
-            opacity: 0.7;
-            font-size: 1.2rem;
-        }
-
-        @keyframes sparkle {
-            0%, 100% { opacity: 0.7; transform: translateY(-50%) scale(1);}
-            50% { opacity: 1; transform: translateY(-60%) scale(1.3);}
-        }
-
-        @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(20px);}
-            to {opacity: 1; transform: translateY(0);}
-        }
-
-        /* Responsive */
-        @media (max-width: 700px) {
-            table {
-                width: 95%;
-            }
-            th, td {
-                padding: 10px 8px;
-                font-size: 0.85rem;
-            }
-            h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Saxo | Portfolio</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033;background:#f5f7fb;line-height:1.4}*{box-sizing:border-box}body{margin:0;padding:32px;max-width:1500px;margin-inline:auto}header{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:26px}h1,h2,p{margin:0}h1{font-size:clamp(1.8rem,3vw,2.7rem);letter-spacing:-.04em}header p{color:#718096;margin-top:6px}.grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(360px,.8fr);gap:20px}@media(max-width:900px){body{padding:20px}.grid{grid-template-columns:1fr}header{display:block}}section{background:#fff;border:1px solid #e5eaf2;border-radius:18px;padding:22px;box-shadow:0 10px 30px #16213d0b;overflow:hidden}.section-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}h2{font-size:1rem;letter-spacing:.01em}.badge{color:#53627a;background:#eef2f8;border-radius:999px;padding:4px 9px;font-size:.75rem}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:13px 10px;border-bottom:1px solid #edf0f5;font-size:.9rem;white-space:nowrap}th{color:#8290a6;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fafbfe}.instrument{font-weight:650;color:#18243b}.ticker-pill{display:inline-flex;align-items:center;border:1px solid #cddaf3;border-radius:999px;background:#eaf0fc;color:#244b8f;padding:5px 10px;font-size:.76rem;font-weight:750;letter-spacing:.02em;cursor:help;transition:.15s}.ticker-pill:hover{background:#dce7fa;border-color:#adc2e8;box-shadow:0 2px 8px #244b8f1f}.muted{color:#7b879b}.positive{color:#15865b}.negative{color:#c84b4b}.sell{border:0;background:#fff0f0;color:#bd3f48;font:inherit;font-size:.78rem;font-weight:700;border-radius:8px;padding:8px 11px;cursor:pointer;transition:.15s}.sell:hover{background:#bd3f48;color:#fff}.sell:disabled{opacity:.5;cursor:wait}.status-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 9px;font-size:.72rem;font-weight:750;letter-spacing:.01em}.status-confirmed,.status-finalfill,.status-fill{color:#11734e;background:#dff7ea}.status-requested,.status-placed{color:#986500;background:#fff1c9}.status-rejected,.status-cancelled,.status-expired{color:#b3313c;background:#ffe2e5}.status-changed{color:#245a9a;background:#e1edff}.empty{color:#7b879b;padding:26px 0;text-align:center}.status{position:sticky;bottom:0;margin-top:22px;background:#172033;color:#edf3ff;padding:14px 18px;border-radius:13px;display:flex;gap:20px;flex-wrap:wrap;font-size:.82rem;box-shadow:0 8px 24px #16213d26}.ok{color:#79e0a8}.bad{color:#ff9b9b}.notice{position:fixed;right:24px;top:24px;max-width:360px;background:#172033;color:#fff;padding:14px 16px;border-radius:10px;box-shadow:0 10px 30px #16213d33;display:none}.notice.show{display:block}
+  </style>
 </head>
 <body>
-    <p> {{ positions }}</p>
-    <h1>Current Positions</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Account</th>
-                <th>Asset Type</th>
-                <th>Name</th>
-                <th>Amount</th>
-                <th>Profit/Loss</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for position in positions %}
-                <tr>
-                    <td>{{ position.account_id }}</td>
-                    <td>{{ position.asset_type }}</td>
-                    <td>{{ position.name }}</td>
-                    <td class="amount">{{ position.amount }}</td>
-                    <td>{{ position.profit_loss }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <header><div><h1>Portfolio</h1><p>Positions and working orders</p></div><p id="updated">Updating&hellip;</p></header>
+  <main class="grid"><section><div class="section-heading"><h2>Open positions</h2><span class="badge" id="position-count">&mdash;</span></div><div id="positions" class="empty">Loading&hellip;</div></section><section><div class="section-heading"><h2>Working orders</h2><span class="badge" id="order-count">&mdash;</span></div><div id="orders" class="empty">Loading&hellip;</div></section><section><div class="section-heading"><h2>Today&rsquo;s order history</h2><span class="badge" id="history-count">&mdash;</span></div><div id="order-history" class="empty">Loading&hellip;</div></section></main>
+  <div id="status" class="status">Loading token status&hellip;</div><div id="notice" class="notice"></div>
+  <script>
+    const initialPositions={{ positions|default([])|tojson }};
+    const query={{ ((('?secret=' + secret)|tojson) if secret else '""')|safe }};
+    const esc=value=>String(value??"&mdash;").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    const formatNumber=value=>value==null?'&mdash;':Number(value).toLocaleString(undefined,{maximumFractionDigits:4});
+    const statusClass=value=>{const s=String(value??'').toLowerCase();if(s.includes('reject'))return'status-rejected';if(s.includes('cancel'))return'status-cancelled';if(s.includes('expire'))return'status-expired';if(s.includes('confirm')||s.includes('finalfill'))return'status-confirmed';if(s.includes('request')||s==='placed')return'status-requested';if(s.includes('fill'))return'status-fill';if(s.includes('change'))return'status-changed';return''};
+    const cell=(row,column)=>{const value=row[column[0]];if(column[2]==='number')return formatNumber(value);if(column[2]==='status')return`<span class="status-pill ${statusClass(value)}">${esc(value)}</span>`;if(column[2]==='ticker')return`<span class="ticker-pill" title="${esc(row.company_name||value||'Unknown company')}">${esc(value)}</span>`;return esc(value)};
+    const table=(rows,columns,action=false)=>rows.length?`<table><thead><tr>${columns.map(c=>`<th>${c[1]}</th>`).join('')}${action?'<th></th>':''}</tr></thead><tbody>${rows.map(row=>`<tr>${columns.map(c=>`<td>${cell(row,c)}</td>`).join('')}${action?`<td><button class="sell" data-uic="${esc(row.uic)}" data-amount="${esc(row.amount)}" data-asset-type="${esc(row.asset_type)}" data-account-key="${esc(row.account_key)}" data-name="${esc(row.name)}">Sell</button></td>`:''}</tr>`).join('')}</tbody></table>`:'<div class="empty">None</div>';
+    const showNotice=(text,ok=false)=>{const n=document.getElementById('notice');n.textContent=text;n.style.background=ok?'#176b4d':'#172033';n.classList.add('show');setTimeout(()=>n.classList.remove('show'),4500)};
+    const sell=async button=>{const name=button.dataset.name,amount=Number(button.dataset.amount);if(!confirm(`Sell ${formatNumber(amount)} ${name} at market?`))return;button.disabled=true;try{const response=await fetch('/api/positions/sell'+query,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uic:button.dataset.uic,amount,asset_type:button.dataset.assetType,account_key:button.dataset.accountKey})});const data=await response.json();if(!response.ok)throw Error(data.error||'Sell order failed');showNotice('Sell order submitted.',true);await refresh()}catch(error){showNotice(error.message);button.disabled=false}};
+    const formatLifetime=x=>x==null?'&mdash;':x<3600?Math.floor(x/60)+'m':Math.floor(x/3600)+'h '+Math.floor(x%3600/60)+'m';
+    const updateStatus=async()=>{try{const response=await fetch('/api/status'+query);if(!response.ok)throw Error('Unable to load token status');const s=await response.json();document.getElementById('status').innerHTML=`<span class="${s.authenticated?'ok':'bad'}">● ${s.authenticated?'Authenticated':'Not authenticated'}</span><span>Refresh interval: ${formatLifetime(s.refresh_interval_seconds)}</span><span>Access token: ${formatLifetime(s.access_token.seconds)} (${esc(s.access_token.at||'unknown')})</span><span>Refresh token: ${formatLifetime(s.refresh_token.seconds)} (${esc(s.refresh_token.at||'unknown')})</span>`}catch(error){document.getElementById('status').textContent=error.message}};
+    const fetchData=async path=>{const response=await fetch(path+query);if(!response.ok)throw Error(`Unable to load ${path} (${response.status})`);return response.json()};
+    const refreshPositions=async()=>{try{const data=await fetchData('/api/positions');const rows=data.Data||[];document.getElementById('positions').innerHTML=table(rows,[['name','Instrument','ticker'],['asset_type','Type'],['amount','Quantity','number'],['profit_loss','P/L']],true);document.getElementById('position-count').textContent=rows.length+' position'+(rows.length===1?'':'s');document.querySelectorAll('.sell').forEach(button=>button.addEventListener('click',()=>sell(button)))}catch(error){document.getElementById('positions').innerHTML=`<div class="empty">${esc(error.message)}</div>`}};
+    const refreshOrders=async()=>{try{const data=await fetchData('/api/orders');const rows=data.Data||[];document.getElementById('orders').innerHTML=table(rows,[['instrument','Instrument','ticker'],['Status','Status','status'],['BuySell','Side'],['Amount','Quantity','number'],['OrderPrice','Price','number']]);document.getElementById('order-count').textContent=rows.length+' order'+(rows.length===1?'':'s')}catch(error){document.getElementById('orders').innerHTML=`<div class="empty">${esc(error.message)}</div>`}};
+    const refreshHistory=async()=>{try{const data=await fetchData('/api/order-history');const rows=data.Data||[];rows.sort((a,b)=>new Date(b.ActivityTime||0)-new Date(a.ActivityTime||0));document.getElementById('order-history').innerHTML=table(rows,[['ActivityTime','Time'],['instrument','Instrument','ticker'],['OrderId','Order ID'],['Status','Status','status'],['SubStatus','Detail','status'],['FilledAmount','Filled','number'],['AveragePrice','Avg. price','number']]);document.getElementById('history-count').textContent=rows.length+' activit'+(rows.length===1?'y':'ies')}catch(error){document.getElementById('order-history').innerHTML=`<div class="empty">${esc(error.message)}</div>`}};
+    async function refresh(){updateStatus();await Promise.allSettled([refreshPositions(),refreshOrders(),refreshHistory()]);document.getElementById('updated').textContent='Updated '+new Date().toLocaleTimeString()}
+    refresh();setInterval(refresh,30000);setInterval(updateStatus,5000);
+  </script>
 </body>
 </html>
