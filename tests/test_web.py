@@ -24,6 +24,25 @@ class TestWeb(unittest.TestCase):
             callback = self.client.get("/oauth/callback?code=abc")
             self.assertEqual(callback.status_code, 302)
 
+    def test_status_reports_environment_and_trading_state(self):
+        client = web_module.saxoclient
+        with (
+            patch.object(client, "current_state", return_value="authenticated"),
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(
+                web_module,
+                "runtime_config",
+                SimpleNamespace(
+                    simulation_mode=False,
+                    trading_enabled=True,
+                    token_refresh_interval_seconds=300,
+                ),
+            ),
+        ):
+            status = web_module._status(client)
+        self.assertEqual(status["environment"], "LIVE")
+        self.assertTrue(status["trading_enabled"])
+
     def test_authenticate_paths(self):
         client = web_module.saxoclient
         with (
@@ -131,7 +150,14 @@ class TestWeb(unittest.TestCase):
         response = self.client.get("/")
         self.assertIn(b"ticker-pill", response.data)
         self.assertIn(b"row.company_name", response.data)
+        self.assertIn(b"const tradingEnabled=false", response.data)
         self.assertEqual(response.data.count(b"const sell="), 1)
+
+    def test_dashboard_exposes_sell_control_only_when_trading_is_enabled(self):
+        client = web_module.saxoclient
+        with patch.object(client, "trading_enabled", True, create=True):
+            response = self.client.get("/")
+        self.assertIn(b"const tradingEnabled=true", response.data)
 
     def test_instrument_cache_expiry_refreshes_value(self):
         mock_client = MagicMock()

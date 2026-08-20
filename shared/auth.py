@@ -8,12 +8,13 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-import requests
+import httpx
 
 # ==============================
 # Logging setup
 # ==============================
 logger = logging.getLogger()
+_http2_client = httpx.Client(http2=True)
 
 
 @contextmanager
@@ -76,7 +77,7 @@ class OAuth2Client:
     def _exchange_for_token(self, code, code_verifier):
         """Exchange the authorization code for an access token."""
         logger.debug("Exchanging authorization code for token...")
-        response = requests.post(
+        response = _http2_client.post(
             self.token_endpoint,
             data={
                 "client_id": self.client_id,
@@ -348,7 +349,7 @@ class AuthorizationCodeClient(OAuth2Client):
             return None
 
         logger.debug("Attempting token refresh...")
-        response = requests.post(
+        response = _http2_client.post(
             self.token_endpoint,
             data={
                 "grant_type": "refresh_token",

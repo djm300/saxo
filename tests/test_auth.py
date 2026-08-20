@@ -26,7 +26,7 @@ class TestOAuth2Client(unittest.TestCase):
         expected_url = f"{self.auth_endpoint}?client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=read&state=xyz"
         self.assertEqual(self.oauth_client._get_auth_url(**params), expected_url)
 
-    @patch("shared.auth.requests.post")
+    @patch("shared.auth._http2_client.post")
     def test_exchange_for_token_success(self, mock_post):
         mock_response = MagicMock()
         mock_response.json.return_value = {
@@ -53,7 +53,7 @@ class TestOAuth2Client(unittest.TestCase):
         )
         self.assertEqual(token_data["access_token"], "abc")
 
-    @patch("shared.auth.requests.post")
+    @patch("shared.auth._http2_client.post")
     def test_exchange_for_token_failure(self, mock_post):
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("Bad request")
@@ -106,7 +106,7 @@ class TestAuthorizationCodeClient(unittest.TestCase):
         mock_save_tokens.assert_called_once()
         self.assertEqual(result["access_token"], "new_token")
 
-    @patch("shared.auth.requests.post")
+    @patch("shared.auth._http2_client.post")
     @patch.object(AuthorizationCodeClient, "_save_tokens")
     @patch.object(AuthorizationCodeClient, "_is_refresh_token_expired", return_value=False)
     def test_refresh_token_success(self, _mock_expired, mock_save_tokens, mock_post):
@@ -129,7 +129,7 @@ class TestAuthorizationCodeClient(unittest.TestCase):
         mock_save_tokens.assert_called_once()
         self.assertEqual(result["access_token"], "new_access")
 
-    @patch("shared.auth.requests.post")
+    @patch("shared.auth._http2_client.post")
     @patch.object(AuthorizationCodeClient, "_save_tokens")
     def test_refresh_token_no_refresh_token(self, mock_save_tokens, mock_post):
         self.auth_client.tokens = {"access_token": "valid_token"}
@@ -179,11 +179,11 @@ class TestAuthorizationCodeClient(unittest.TestCase):
             "refresh_token": "new-refresh",
             "refresh_token_expires_in": 10,
         }
-        with patch("shared.auth.requests.post", return_value=response):
+        with patch("shared.auth._http2_client.post", return_value=response):
             result = self.auth_client.refresh_token()
         self.assertEqual(result["refresh_token"], "new-refresh")
         response = MagicMock(status_code=500, text="bad")
-        with patch("shared.auth.requests.post", return_value=response):
+        with patch("shared.auth._http2_client.post", return_value=response):
             self.assertIsNone(self.auth_client.refresh_token())
 
 

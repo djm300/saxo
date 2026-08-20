@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "Flask",
-  "requests",
+  "httpx[http2]",
 ]
 
 [project.optional-dependencies]

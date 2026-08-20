@@ -2,12 +2,13 @@ import logging
 import threading
 from datetime import datetime, timedelta, timezone
 
-import requests  # Import the requests library
+import httpx
 
 from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime, token_file_lock
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
+_http2_client = httpx.Client(http2=True)
 
 
 class AuthenticationError(ConnectionError):
@@ -253,7 +254,9 @@ class SaxoClient:
         }
 
         try:
-            response = requests.request(method, url, headers=headers, json=data, params=params)
+            response = _http2_client.request(
+                method, url, headers=headers, json=data, params=params
+            )
             # logger.debug(f"API Request: {method} {url} - Status Code: {response.status_code}")
             # logger.debug(f"Headers: {headers}   Data: {data}   Params: {params}")
             # logger.debug(f"Response Text: {response.text}")
@@ -261,7 +264,7 @@ class SaxoClient:
             # logger.debug(f"Response Content: {response.content}")
             response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
             return response.json()
-        except requests.exceptions.HTTPError as e:
+        except httpx.HTTPStatusError as e:
             status_code = getattr(response, "status_code", None)
             if status_code in (401, 403):
                 raise AuthenticationError("Saxo authentication was rejected.") from e
@@ -272,7 +275,7 @@ class SaxoClient:
                 f"Saxo API request failed with HTTP {status_code}: {endpoint}"
                 + (f" - {detail[:500]}" if detail else "")
             ) from e
-        except requests.exceptions.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"API request failed: {e}")
             raise SaxoAPIError(f"API request to {url} failed.") from e
 

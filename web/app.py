@@ -349,6 +349,8 @@ def _status(client):
         "client_state": state,
         "saxoclient state": state,
         "authenticated": client._is_authenticated(),
+        "environment": "SIM" if getattr(runtime_config, "simulation_mode", True) else "LIVE",
+        "trading_enabled": bool(getattr(runtime_config, "trading_enabled", False)),
         "refresh_interval_seconds": getattr(runtime_config, "token_refresh_interval_seconds", None),
         "access_token": expiry("access_token_expires_at"),
         "refresh_token": expiry("refresh_token_expires_at"),
@@ -367,7 +369,10 @@ def stop_background_tasks():
 @app.route("/")
 def home():
     return render_template(
-        "positions.html", secret=request.args.get("secret", ""), dev_mode=dev_mode
+        "positions.html",
+        secret=request.args.get("secret", ""),
+        dev_mode=dev_mode,
+        trading_enabled=getattr(saxoclient, "trading_enabled", False),
     )
 
 
@@ -566,6 +571,7 @@ def positionstable():
         positions=_positions(client),
         secret=request.args.get("secret", ""),
         dev_mode=dev_mode,
+        trading_enabled=getattr(client, "trading_enabled", False),
     )
 
 

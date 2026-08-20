@@ -1,6 +1,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import httpx
+
 from shared.client import AuthenticationError, SaxoAPIError, SaxoClient
 
 
@@ -115,10 +117,10 @@ class TestSaxoClient(unittest.TestCase):
     def test_http_errors_are_not_reported_as_authentication(self):
         self.mock_auth_client.tokens = {"access_token": "x"}
         response = MagicMock(status_code=404)
-        response.raise_for_status.side_effect = __import__("requests").exceptions.HTTPError(
-            "missing"
+        response.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "missing", request=httpx.Request("GET", "https://example.test/missing"), response=httpx.Response(404)
         )
-        with patch("shared.client.requests.request", return_value=response):
+        with patch("shared.client._http2_client.request", return_value=response):
             with self.assertRaises(SaxoAPIError):
                 self.client._make_api_request("GET", "/missing")
 
@@ -144,7 +146,7 @@ class TestSaxoClient(unittest.TestCase):
         self.mock_auth_client._is_access_token_expired.return_value = False
         response = MagicMock()
         response.json.return_value = {"ok": True}
-        with patch("shared.client.requests.request", return_value=response) as request:
+        with patch("shared.client._http2_client.request", return_value=response) as request:
             self.assertEqual(
                 self.client._make_api_request("get", "/x", data={"a": 1}, params={"p": 2}),
                 {"ok": True},
@@ -166,10 +168,10 @@ class TestSaxoClient(unittest.TestCase):
             self.assertEqual(api.call_count, 6)
         self.mock_auth_client.tokens = {"access_token": "x"}
         response = MagicMock()
-        response.raise_for_status.side_effect = __import__("requests").exceptions.RequestException(
-            "down"
+        response.raise_for_status.side_effect = httpx.RequestError(
+            "down", request=httpx.Request("GET", "https://example.test/x")
         )
-        with patch("shared.client.requests.request", return_value=response):
+        with patch("shared.client._http2_client.request", return_value=response):
             with self.assertRaises(ConnectionError):
                 self.client._make_api_request("GET", "/x")
 
