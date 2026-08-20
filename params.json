@@ -7,5 +7,5 @@
     "LIVE_AUTH_ENDPOINT": "https://live.logonvalidation.net/authorize",
     "LIVE_TOKEN_ENDPOINT": "https://live.logonvalidation.net/token",
     "LIVE_CLIENT_ID": "28d17c462242447f94c4b0767c41a552",
-    "TRADING_ENABLED": false
+    "TRADING_ENABLED": "False"
 }
