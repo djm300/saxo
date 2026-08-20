@@ -1,11 +1,13 @@
 import logging
-import requests # Import the requests library
 import threading
+
+import requests  # Import the requests library
+
+from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
 
-from .auth import AuthorizationCodeClient, lifetime_seconds_to_datetime
 
 class SaxoClient:
     # Define possible states for the client
@@ -16,7 +18,16 @@ class SaxoClient:
     STATE_REFRESHING = "refreshing"
     STATE_ERROR = "error"
 
-    def __init__(self, client_id, redirect_uri, auth_endpoint, token_endpoint, token_file='tokens.json', scope="required_scope", baseurl="https://gateway.saxobank.com/sim/openapi"):
+    def __init__(
+        self,
+        client_id,
+        redirect_uri,
+        auth_endpoint,
+        token_endpoint,
+        token_file="tokens.json",
+        scope="required_scope",
+        baseurl="https://gateway.saxobank.com/sim/openapi",
+    ):
         """Initialize the SaxoClient with authentication and service clients."""
         self._state = self.STATE_NOT_AUTHENTICATED  # Initial state
         self.auth_client = AuthorizationCodeClient(
@@ -25,15 +36,15 @@ class SaxoClient:
             auth_endpoint=auth_endpoint,
             token_endpoint=token_endpoint,
             token_file=token_file,
-            baseurl=baseurl # This baseurl will be used for API calls
+            baseurl=baseurl,  # This baseurl will be used for API calls
         )
         # Saxo doesn't use Oauth scopes in the traditional sense, but we include it for compatibility
         self.scope = scope
         logger.info("SaxoClient initialized.")
-        if not(self.auth_client._is_access_token_expired()):
+        if not (self.auth_client._is_access_token_expired()):
             self.transition(self.STATE_AUTHENTICATED)
         else:
-            self.transition(self.STATE_NOT_AUTHENTICATED) # Set initial state
+            self.transition(self.STATE_NOT_AUTHENTICATED)  # Set initial state
 
     def transition(self, new_state):
         """
@@ -122,17 +133,19 @@ class SaxoClient:
 
     def start_refresh_thread(self, interval=60):
         """Start a background thread to refresh the token periodically."""
-        if not hasattr(self, '_refresh_thread') or not self._refresh_thread.is_alive():
+        if not hasattr(self, "_refresh_thread") or not self._refresh_thread.is_alive():
             logger.info("Starting token refresh thread...")
             self._stop_event = threading.Event()
-            self._refresh_thread = threading.Thread(target=self._refresh_loop, args=(interval,), daemon=True)
+            self._refresh_thread = threading.Thread(
+                target=self._refresh_loop, args=(interval,), daemon=True
+            )
             self._refresh_thread.start()
         else:
             logger.info("Token refresh thread is already running.")
 
     def stop_refresh_thread(self):
         """Stop the background token refresh thread."""
-        if hasattr(self, '_refresh_thread') and self._refresh_thread.is_alive():
+        if hasattr(self, "_refresh_thread") and self._refresh_thread.is_alive():
             logger.info("Stopping token refresh thread...")
             self._stop_event.set()
             self._refresh_thread.join()
@@ -156,11 +169,10 @@ class SaxoClient:
             else:
                 expires_at = self.auth_client.tokens.get("access_token_expires_at", 0)
                 self.transition(self.STATE_AUTHENTICATED)
-                logger.debug(f"Access token valid until {lifetime_seconds_to_datetime(expires_at)}.")
+                logger.debug(
+                    f"Access token valid until {lifetime_seconds_to_datetime(expires_at)}."
+                )
             self._stop_event.wait(interval)
-
-
-
 
     #########################
     # API methods
@@ -185,25 +197,27 @@ class SaxoClient:
             except Exception as e:
                 logger.error(f"Failed to refresh token: {e}")
                 self.transition(self.STATE_ERROR)
-                raise ConnectionError("Authentication token is invalid or expired, and refresh failed.") from e
+                raise ConnectionError(
+                    "Authentication token is invalid or expired, and refresh failed."
+                ) from e
 
-        access_token = self.auth_client.tokens.get('access_token')
+        access_token = self.auth_client.tokens.get("access_token")
         if not access_token:
             raise ConnectionError("Access token not available.")
 
         url = f"{self.auth_client.baseurl}{endpoint}"
         headers = {
             "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json" # Assuming JSON for most requests
+            "Content-Type": "application/json",  # Assuming JSON for most requests
         }
 
         try:
             response = requests.request(method, url, headers=headers, json=data, params=params)
-            #logger.debug(f"API Request: {method} {url} - Status Code: {response.status_code}")
-            #logger.debug(f"Headers: {headers}   Data: {data}   Params: {params}")
-            #logger.debug(f"Response Text: {response.text}")
-            #logger.debug(f"Response Headers: {response.headers}")
-            #logger.debug(f"Response Content: {response.content}")
+            # logger.debug(f"API Request: {method} {url} - Status Code: {response.status_code}")
+            # logger.debug(f"Headers: {headers}   Data: {data}   Params: {params}")
+            # logger.debug(f"Response Text: {response.text}")
+            # logger.debug(f"Response Headers: {response.headers}")
+            # logger.debug(f"Response Content: {response.content}")
             response.raise_for_status()  # Raises an HTTPError for bad responses (4xx or 5xx)
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -215,14 +229,34 @@ class SaxoClient:
         # Refactored to use the template method
         logger.info("Fetching positions via SaxoClient helper.")
         return self._make_api_request("GET", "/port/v1/positions/me")
-    
+
     def get_accounts(self):
         """Get current accounts."""
         # Refactored to use the template method
         logger.info("Fetching accounts via SaxoClient helper.")
-        return self._make_api_request("GET", "/port/v1/accounts/me")   
+        return self._make_api_request("GET", "/port/v1/accounts/me")
 
     def get_instrument_by_uic(self, uic, asset_type="Stock"):
         # Refactored to use the template method
         logger.info("Fetching instrument details via SaxoClient helper.")
         return self._make_api_request("GET", f"/ref/v1/instruments/details/{uic}/{asset_type}")
+
+    def get_balances(self):
+        return self._make_api_request("GET", "/port/v1/balances/me")
+
+    def get_orders(self):
+        return self._make_api_request(
+            "GET", "/cs/v1/orders", params={"FieldGroups": "DisplayAndFormats"}
+        )
+
+    def search_instruments(self, query, asset_type=None):
+        params = {"Keywords": query}
+        if asset_type:
+            params["AssetTypes"] = asset_type
+        return self._make_api_request("GET", "/ref/v1/instruments", params=params)
+
+    def get_quote(self, uic, asset_type="Stock", account_key=None):
+        params = {"Uic": uic, "AssetType": asset_type}
+        if account_key:
+            params["AccountKey"] = account_key
+        return self._make_api_request("GET", "/trade/v1/infoprices", params=params)

@@ -10,7 +10,9 @@ class TestSaxoClient(unittest.TestCase):
         self.mock_auth_client._is_access_token_expired.return_value = False
         self.mock_auth_client.tokens = {"access_token": "abc"}
 
-        self.patcher_auth = patch("shared.client.AuthorizationCodeClient", return_value=self.mock_auth_client)
+        self.patcher_auth = patch(
+            "shared.client.AuthorizationCodeClient", return_value=self.mock_auth_client
+        )
         self.mock_auth_cls = self.patcher_auth.start()
 
         self.client = SaxoClient(

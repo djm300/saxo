@@ -1,8 +1,6 @@
 {
     "REDIRECT_URI": "https://djm300.github.io/saxo/oauth-redirect.html",
     "SIMULATION_MODE": "True",
-    "SIM_ACCOUNT": "YOUR_SIM_ACCOUNT_NUMBER",
-    "SIM_PASSWORD": "YOUR_SIM_PASSWORD",
     "SIM_AUTH_ENDPOINT": "https://sim.logonvalidation.net/authorize",
     "SIM_TOKEN_ENDPOINT": "https://sim.logonvalidation.net/token",
     "SIM_CLIENT_ID": "YOUR_SIM_CLIENT_ID",

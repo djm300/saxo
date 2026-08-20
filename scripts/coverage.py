@@ -12,11 +12,10 @@ import pathlib
 import site
 import sys
 import sysconfig
-from typing import Iterable
+from collections.abc import Iterable
 from trace import Trace
 
 import pytest
-
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 COVERDIR = ROOT / ".coverage-trace"
@@ -38,8 +37,7 @@ def _unique_paths(paths: Iterable[str]) -> list[str]:
 def _ignored_dirs() -> list[str]:
     paths = []
     paths.extend(
-        sysconfig.get_path(name)
-        for name in ("stdlib", "platstdlib", "purelib", "platlib")
+        sysconfig.get_path(name) for name in ("stdlib", "platstdlib", "purelib", "platlib")
     )
     paths.extend(site.getsitepackages() if hasattr(site, "getsitepackages") else [])
     paths.append(site.getusersitepackages())

@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from dataclasses import dataclass
+from pathlib import Path
 
 from shared.client import SaxoClient
 
@@ -16,6 +17,7 @@ class SaxoRuntimeConfig:
     token_file: str
     client_id: str
     base_url: str
+    token_refresh_interval_seconds: int = 300
 
 
 def load_config_value(key, default=None, json_config=None, logger=None):
@@ -44,10 +46,26 @@ def parse_bool(value):
     return bool(value)
 
 
-def load_runtime_config(params_path="params.json", logger=None):
+def default_token_file(environment="sim"):
+    """Return the per-user token path for the current operating system.
+
+    TOKEN_FILE remains an explicit override for deployments and tests.
+    """
+    suffix = "sim" if environment == "sim" else "live"
+    if sys.platform.startswith("win"):
+        root = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+        directory = root / "Saxo"
+    elif sys.platform == "darwin":
+        directory = Path.home() / "Library" / "Application Support" / "Saxo"
+    else:
+        directory = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "saxo"
+    return str(directory / f"tokens-{suffix}.json")
+
+
+def load_runtime_config(params_path="params.json", logger=None, environment=None):
     json_config = {}
     try:
-        with open(params_path, "r") as file:
+        with open(params_path) as file:
             json_config = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         pass
@@ -61,24 +79,34 @@ def load_runtime_config(params_path="params.json", logger=None):
     simulation_mode = parse_bool(
         load_config_value("SIMULATION_MODE", default=True, json_config=json_config, logger=logger)
     )
+    if environment is not None:
+        simulation_mode = environment != "live"
 
     if simulation_mode:
-        auth_endpoint = os.environ.get("SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize")
-        token_endpoint = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token")
+        auth_endpoint = os.environ.get(
+            "SAXO_AUTH_ENDPOINT", "https://sim.logonvalidation.net/authorize"
+        )
+        token_endpoint = os.environ.get(
+            "SAXO_TOKEN_ENDPOINT", "https://sim.logonvalidation.net/token"
+        )
         token_file = load_config_value(
             "TOKEN_FILE",
-            default="tokens.json",
+            default=default_token_file("sim"),
             json_config=json_config,
             logger=logger,
         )
         client_id = "89da08eeb25c428a9099f768cdb1696e"
         base_url = "https://gateway.saxobank.com/sim/openapi"
     else:
-        auth_endpoint = os.environ.get("SAXO_AUTH_ENDPOINT", "https://live.logonvalidation.net/authorize")
-        token_endpoint = os.environ.get("SAXO_TOKEN_ENDPOINT", "https://live.logonvalidation.net/token")
+        auth_endpoint = os.environ.get(
+            "SAXO_AUTH_ENDPOINT", "https://live.logonvalidation.net/authorize"
+        )
+        token_endpoint = os.environ.get(
+            "SAXO_TOKEN_ENDPOINT", "https://live.logonvalidation.net/token"
+        )
         token_file = load_config_value(
             "TOKEN_FILE",
-            default="tokens.json",
+            default=default_token_file("live"),
             json_config=json_config,
             logger=logger,
         )

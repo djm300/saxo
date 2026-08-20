@@ -5,7 +5,8 @@ Python tools for Saxo Bank OpenAPI access.
 
 - `cli/` - command-line positions command
 - `web/` - Flask app for auth and position views
-- `shared/` - auth, client, config, formatter, and account lookup helpers
+- `shared/` - authentication, client, runtime configuration, normalization, and formatting helpers
+- `scripts/` - local linting, coverage, and standalone-binary build helpers
 - `pyproject.toml` - packaging metadata and console scripts
 
 ## Configuration
@@ -43,13 +44,54 @@ That provides:
 Run the CLI entry point with:
 
 ```bash
-saxo-cli positions --format text
+saxo-cli positions --json
 ```
 
 Useful flags:
 
 - `--params PATH` to read a different config file
 - `--verbose` to enable informational logs
+
+The CLI is read-only and JSON-first. It includes `account`, `balances`, `portfolio`,
+`positions`, `position`, `orders`, `instrument`, and `quote`. `--env sim|live`
+selects the explicitly requested Saxo environment; no order execution command is
+provided. Saxo option-chain endpoints vary by account permissions and are kept out
+of the initial normalized layer until a representative API response is available.
+
+See [docs/CLI.md](docs/CLI.md) for colored command examples, JSON output, exit
+codes, and platform-specific credential storage locations.
+
+See [architecture.md](architecture.md) for the component boundaries and request flow.
+
+## Standalone binary
+
+Build a single-file CLI executable locally:
+
+```bash
+python -m pip install -e ".[build]"
+python scripts/build_binary.py --clean
+```
+
+The output is `dist/saxo-cli.exe` on Windows and `dist/saxo-cli` on Linux/macOS. The
+binary includes the Python runtime and application dependencies, but deliberately
+does not embed `params.json`, OAuth credentials, or tokens. It uses the same
+external configuration and per-user credential locations as the Python CLI.
+
+Example:
+
+```console
+dist\saxo-cli.exe --env sim positions --json
+```
+
+The installed console script is always invoked as:
+
+```console
+saxo-cli quote ASR --json
+```
+
+For a checkout without installing the package, use the repository launcher
+(`saxo-cli.cmd` on Windows or `./saxo-cli` on Unix). If the installed package or
+binary directory is on `PATH`, the same command works from any directory.
 
 ## Test coverage
 
@@ -66,6 +108,19 @@ python3 scripts/coverage.py tests/test_client.py -k token
 ```
 
 Coverage summaries are written to `.coverage-trace/`.
+
+## Local linting
+
+Linting is local and does not require GitHub Actions:
+
+```bash
+python -m pip install -e ".[dev]"
+python scripts/lint.py
+python scripts/lint.py --fix
+```
+
+Ruff settings live in `pyproject.toml`. The wrapper also works on Windows with
+`python scripts\lint.py`.
 
 ## Web app
 
@@ -88,7 +143,7 @@ Container example:
 docker build -t saxo-tools .
 docker run --rm -p 5000:5000 \
   -v "$PWD/params.json:/app/params.json:ro" \
-  -v "$PWD/tokens.json:/app/tokens.json" \
+  -v saxo-config:/root/.config/saxo \
   saxo-tools
 ```
 
@@ -97,8 +152,8 @@ The app binds to `0.0.0.0:5000` by default inside the container. Override with
 
 ## Notes
 
-- Tokens default to `tokens.json`.
+- Tokens default to a per-user OS credential location; see [docs/CLI.md](docs/CLI.md).
 - `SIMULATION_MODE=true` uses Saxo SIM endpoints.
 - `SIMULATION_MODE=false` uses Saxo LIVE endpoints.
 - Saxo OpenAPI access in this app is read-only; API helpers reject non-GET requests.
-- Keep `params.json` and `tokens.json` out of the image; mount them at runtime instead.
+- Keep credentials out of `params.json`, the image, and source control.

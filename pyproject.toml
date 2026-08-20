@@ -17,6 +17,13 @@ dependencies = [
 cli = [
   "prettytable",
 ]
+dev = [
+  "pytest",
+  "ruff",
+]
+build = [
+  "pyinstaller",
+]
 test = [
   "pytest",
 ]
@@ -33,3 +40,15 @@ include = ["cli*", "shared*", "web*"]
 
 [tool.setuptools.package-data]
 web = ["templates/*.html"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+extend-exclude = ["docs/Sarabun"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B018"]

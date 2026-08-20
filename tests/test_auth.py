@@ -23,15 +23,17 @@ class TestOAuth2Client(unittest.TestCase):
 
     def test_get_auth_url(self):
         params = {"scope": "read", "state": "xyz"}
-        expected_url = (
-            f"{self.auth_endpoint}?client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=read&state=xyz"
-        )
+        expected_url = f"{self.auth_endpoint}?client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=read&state=xyz"
         self.assertEqual(self.oauth_client._get_auth_url(**params), expected_url)
 
     @patch("shared.auth.requests.post")
     def test_exchange_for_token_success(self, mock_post):
         mock_response = MagicMock()
-        mock_response.json.return_value = {"access_token": "abc", "token_type": "Bearer", "expires_in": 3600}
+        mock_response.json.return_value = {
+            "access_token": "abc",
+            "token_type": "Bearer",
+            "expires_in": 3600,
+        }
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
 
@@ -118,7 +120,11 @@ class TestAuthorizationCodeClient(unittest.TestCase):
 
         mock_post.assert_called_once_with(
             self.token_endpoint,
-            data={"grant_type": "refresh_token", "refresh_token": "valid_refresh_token", "code_verifier": "cv"},
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": "valid_refresh_token",
+                "code_verifier": "cv",
+            },
         )
         mock_save_tokens.assert_called_once()
         self.assertEqual(result["access_token"], "new_access")

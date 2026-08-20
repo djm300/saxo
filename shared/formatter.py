@@ -12,12 +12,13 @@ LOG_EMOJIS = {
 # Define ANSI escape codes for colors
 LOG_COLORS = {
     logging.DEBUG: "\033[94m",  # Blue
-    logging.INFO: "\033[92m",   # Green
-    logging.WARNING: "\033[93m", # Yellow
+    logging.INFO: "\033[92m",  # Green
+    logging.WARNING: "\033[93m",  # Yellow
     logging.ERROR: "\033[91m",  # Red
-    logging.CRITICAL: "\033[91m", # Red
+    logging.CRITICAL: "\033[91m",  # Red
 }
 RESET_COLOR = "\033[0m"
+
 
 # ==============================
 # Logging setup
@@ -28,9 +29,6 @@ class CustomFormatter(logging.Formatter):
         emoji = LOG_EMOJIS.get(record.levelno, "❓")
         color_start = LOG_COLORS.get(record.levelno, "")
         color_end = RESET_COLOR if color_start else ""
-
-        # Extract the module name (last part of logger name)
-        module_name = record.name.split('.')[-1]
 
         # Format timestamp as HH:MM:SS
         timestamp = self.formatTime(record, "%H:%M:%S")
