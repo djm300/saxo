@@ -296,7 +296,8 @@ class TestWeb(unittest.TestCase):
 
     def test_dashboard_refresh_flow_updates_status_after_success(self):
         template = Path("web/templates/positions.html").read_text(encoding="utf-8")
-        self.assertIn("showNotice(success,true);await refresh();await updateStatus()", template)
+        self.assertIn("if(refreshData)await refresh();await updateStatus()", template)
+        self.assertIn("postAction('/api/auth/refresh',{},button,'Token refreshed.',false)", template)
 
     def test_buy_position_rejects_trading_when_disabled(self):
         client = web_module.saxoclient
