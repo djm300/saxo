@@ -274,7 +274,37 @@ def _positions(client, raw=None):
     # making the page wait for one round trip per open position.
     workers = min(8, max(1, len(items)))
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="saxo-position") as executor:
-        return list(executor.map(make_position, items))
+        positions = list(executor.map(make_position, items))
+
+    # Saxo can expose separate position rows for the same instrument after a
+    # new fill. Combine identical account/instrument rows so the dashboard
+    # shows the true holding and a sell-all action closes the complete amount.
+    combined = {}
+    for position in positions:
+        key = (position["account_key"], position["uic"], position["asset_type"])
+        existing = combined.get(key)
+        if existing is None:
+            combined[key] = position
+            continue
+        old_amount = float(existing.get("amount") or 0)
+        new_amount = float(position.get("amount") or 0)
+        total_amount = old_amount + new_amount
+        for field in ("amount", "total_value", "profit_loss"):
+            existing[field] = (float(existing.get(field) or 0) + float(position.get(field) or 0))
+        if total_amount:
+            existing["purchase_price"] = (
+                old_amount * float(existing.get("purchase_price") or 0)
+                + new_amount * float(position.get("purchase_price") or 0)
+            ) / total_amount
+            if existing.get("profit_loss") is not None:
+                existing["total_percent"] = (
+                    float(existing["profit_loss"])
+                    / (abs(float(existing["purchase_price"])) * abs(total_amount))
+                    * 100
+                    if existing["purchase_price"]
+                    else None
+                )
+    return list(combined.values())
 
 
 def _order_display_name(row):

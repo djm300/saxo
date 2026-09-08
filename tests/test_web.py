@@ -102,6 +102,20 @@ class TestWeb(unittest.TestCase):
             self.assertEqual(positions[0]["one_day_percent"], 1.2)
             self.assertEqual(positions[0]["total_percent"], 15.0)
 
+    def test_positions_aggregate_duplicate_account_instrument_rows(self):
+        client = web_module.saxoclient
+        raw = {
+            "Data": [
+                {"PositionBase": {"AccountKey": "A", "Uic": 1, "AssetType": "Stock", "Amount": 3, "OpenPrice": 100}, "PositionView": {"CurrentPrice": 110, "MarketValue": 330, "ProfitLossOnTrade": 30}},
+                {"PositionBase": {"AccountKey": "A", "Uic": 1, "AssetType": "Stock", "Amount": 7, "OpenPrice": 120}, "PositionView": {"CurrentPrice": 110, "MarketValue": 770, "ProfitLossOnTrade": -70}},
+            ]
+        }
+        with patch.object(client, "get_instrument_by_uic", return_value={"Symbol": "KBC:xbru", "Description": "KBC Groep"}):
+            positions = web_module._positions(client, raw)
+        self.assertEqual(len(positions), 1)
+        self.assertEqual(positions[0]["amount"], 10)
+        self.assertEqual(positions[0]["total_value"], 1100)
+
     def test_instrument_cache_and_background(self):
         cache = {}
         mock_client = MagicMock()
