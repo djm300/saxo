@@ -294,6 +294,10 @@ class TestWeb(unittest.TestCase):
         refresh.assert_called_once_with()
         self.assertTrue(any("Token refresh successful" in str(call) for call in info.call_args_list))
 
+    def test_dashboard_refresh_flow_updates_status_after_success(self):
+        template = Path("web/templates/positions.html").read_text(encoding="utf-8")
+        self.assertIn("showNotice(success,true);await refresh();await updateStatus()", template)
+
     def test_buy_position_rejects_trading_when_disabled(self):
         client = web_module.saxoclient
         with (
