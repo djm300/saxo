@@ -242,6 +242,55 @@ class TestWeb(unittest.TestCase):
                 }
             )
 
+    def test_buy_position_sizes_market_order_to_one_thousand_euros(self):
+        client = web_module.saxoclient
+        with (
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(client, "trading_enabled", True, create=True),
+            patch.object(client, "place_order", return_value={"Orders": [{"OrderId": "2"}]}) as place_order,
+        ):
+            response = self.client.post(
+                "/api/positions/buy",
+                json={"uic": 7, "current_price": 250, "asset_type": "Stock", "account_key": "A"},
+            )
+        self.assertEqual(response.status_code, 201)
+        place_order.assert_called_once_with(
+            {
+                "AccountKey": "A",
+                "Amount": 4.0,
+                "AssetType": "Stock",
+                "BuySell": "Buy",
+                "ManualOrder": True,
+                "OrderDuration": {"DurationType": "DayOrder"},
+                "OrderType": "Market",
+                "Uic": 7,
+            }
+        )
+
+    def test_manual_token_refresh_calls_client_and_logs_success(self):
+        client = web_module.saxoclient
+        client.auth_client.tokens = {"access_token": "new"}
+        with (
+            patch.object(client, "refresh_token", return_value={"access_token": "new"}) as refresh,
+            patch.object(web_module, "_status", return_value={"authenticated": True}),
+            patch.object(web_module.logger, "info") as info,
+        ):
+            response = self.client.post("/api/auth/refresh")
+        self.assertEqual(response.status_code, 200)
+        refresh.assert_called_once_with()
+        self.assertTrue(any("Token refresh successful" in str(call) for call in info.call_args_list))
+
+    def test_buy_position_rejects_trading_when_disabled(self):
+        client = web_module.saxoclient
+        with (
+            patch.object(client, "_is_authenticated", return_value=True),
+            patch.object(client, "trading_enabled", False, create=True),
+        ):
+            response = self.client.post(
+                "/api/positions/buy", json={"uic": 7, "current_price": 10, "account_key": "A"}
+            )
+        self.assertEqual(response.status_code, 403)
+
     def test_cancel_order_requires_trading_and_submits_cancel(self):
         client = web_module.saxoclient
         with (

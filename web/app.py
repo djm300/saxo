@@ -416,6 +416,25 @@ def api_status():
     return jsonify(_status(saxoclient))
 
 
+@app.route("/api/auth/refresh", methods=["POST"])
+def refresh_authentication():
+    """Refresh the access token on explicit request from the dashboard."""
+    if saxoclient is None:
+        abort(503, description="The Saxo client is not attached.")
+    _log_order_activity("token_refresh_requested", source="dashboard")
+    try:
+        tokens = saxoclient.refresh_token()
+    except Exception as exc:
+        logger.exception("Manual token refresh failed")
+        logger.info("Token refresh failed.")
+        return jsonify({"error": str(exc)}), 502
+    if not tokens or not saxoclient.auth_client.tokens.get("access_token"):
+        logger.info("Token refresh did not return a usable access token.")
+        return jsonify({"error": "Token refresh did not return a usable access token."}), 502
+    logger.info("Token refresh successful (manual dashboard request).")
+    return jsonify({"message": "Token refreshed.", "status": _status(saxoclient)})
+
+
 @app.route("/api/dashboard")
 def dashboard():
     client = _require_client()
@@ -509,6 +528,53 @@ def sell_position():
         "sell_submitted", uic=uic, amount=amount, account_key=account_key, response=response
     )
     return jsonify({"message": "Sell order submitted.", "order": order, "response": response}), 201
+
+
+@app.route("/api/positions/buy", methods=["POST"])
+def buy_position():
+    """Submit a market buy sized to approximately €1,000 at the shown price."""
+    client = _require_client()
+    _log_order_activity("buy_requested", payload=request.get_json(silent=True) or {})
+    if not getattr(client, "trading_enabled", False):
+        _log_order_activity("buy_rejected", reason="trading_disabled")
+        return jsonify(
+            {"error": "Trading is disabled. Set TRADING_ENABLED=true to buy positions."}
+        ), 403
+    payload = request.get_json(silent=True) or {}
+    try:
+        uic = int(payload["uic"])
+        price = float(payload.get("current_price", payload.get("price")))
+    except (KeyError, TypeError, ValueError):
+        _log_order_activity("buy_rejected", reason="invalid_payload")
+        return jsonify({"error": "uic and a numeric current_price are required."}), 400
+    if not isfinite(price) or price <= 0:
+        _log_order_activity("buy_rejected", reason="invalid_price", price=price)
+        return jsonify({"error": "The current price must be greater than zero."}), 400
+    account_key = payload.get("account_key") or payload.get("account_id")
+    if not account_key:
+        _log_order_activity("buy_rejected", reason="missing_account_key", uic=uic)
+        return jsonify({"error": "The position has no account key."}), 400
+    amount = 1000.0 / price
+    order = {
+        "AccountKey": account_key,
+        "Amount": amount,
+        "AssetType": str(payload.get("asset_type") or "Stock"),
+        "BuySell": "Buy",
+        "ManualOrder": True,
+        "OrderDuration": {"DurationType": "DayOrder"},
+        "OrderType": "Market",
+        "Uic": uic,
+    }
+    try:
+        response = client.place_order(order)
+    except Exception as exc:
+        _log_order_activity("buy_failed", uic=uic, amount=amount, error=str(exc))
+        logger.exception("Failed to buy position %s", uic)
+        return jsonify({"error": str(exc)}), 502
+    _log_order_activity(
+        "buy_submitted", uic=uic, amount=amount, account_key=account_key, response=response
+    )
+    return jsonify({"message": "Buy order submitted.", "order": order, "response": response}), 201
 
 
 @app.route("/api/orders/cancel", methods=["POST"])

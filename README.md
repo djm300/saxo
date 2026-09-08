@@ -201,8 +201,10 @@ saxo-cli serve
 
 The CLI authenticates first using the normal terminal token prompt and passes
 the authenticated client to the web app. The dashboard shows positions, working
-orders, today's order history, and token lifetimes. It has no login flow of its
-own. Normal mode prints a URL protected by a generated `?secret=...` value;
+orders, today's order history, and token lifetimes. It supports an explicit token
+refresh action and, when trading is enabled, €1,000 market buys and sell-all
+market orders. It has no login flow of its own. Normal mode prints a URL
+protected by a generated `?secret=...` value;
 `SAXO_WEB_SECRET` supplies a stable value. `saxo-cli serve --dev` disables this
 check and enables hot reload for trusted local development.
 
@@ -215,6 +217,15 @@ It exposes routes for:
 - `/api/orders`
 - `/api/order-history`
 - `/api/status`
+- `/api/auth/refresh` (POST)
+- `/api/positions/buy` (POST)
+- `/api/positions/sell` (POST)
+- `/api/orders/cancel` (POST)
+
+The dashboard is a single-column view. Position and order rows display the
+instrument's true company name (truncated to 20 characters, with the ticker in
+the tooltip). Buy orders use `1000 / current_price` shares and are submitted as
+market orders. All order mutations remain disabled unless `TRADING_ENABLED=true`.
 
 Position instrument names are cached for five days in `instrument-cache.json`
 beside the configured token file. The file is shared safely by concurrent web
