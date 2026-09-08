@@ -214,6 +214,24 @@ def _positions(client, raw=None):
              if view.get(key) is not None or base.get(key) is not None),
             None,
         )
+        # Saxo can return CurrentPrice=0 with CurrentPriceType=None when the
+        # position snapshot has no usable quote. Fetch the quote so the UI can
+        # value the position and size a €1,000 buy correctly.
+        if current_price is not None and float(current_price) <= 0:
+            try:
+                quote_response = client.get_quote(
+                    base.get("Uic"),
+                    asset_type=base.get("AssetType") or "Stock",
+                    account_key=base.get("AccountKey") or base.get("AccountId"),
+                )
+                quote = quote_response.get("Quote", quote_response)
+                current_price = next(
+                    (quote.get(key) for key in ("Mid", "MidPrice", "LastTraded", "Last", "Ask", "Bid", "Price")
+                     if quote.get(key) is not None and float(quote.get(key)) > 0),
+                    None,
+                )
+            except Exception:
+                current_price = None
         profit_loss = view.get("ProfitLossOnTrade")
         market_value = next(
             (view.get(key) for key in ("MarketValue", "MarketValueInBaseCurrency", "Exposure")
