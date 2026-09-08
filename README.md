@@ -60,6 +60,48 @@ The CLI is JSON-first. It includes `account`, `balances`, `portfolio`,
 explicit order preview/execution commands. `--env sim|live` selects the Saxo
 environment. Actual writes require both `--execute` and `TRADING_ENABLED=true`.
 
+### Luna portfolio autopilot
+
+The repository-scoped `$saxo-investment-bot` skill runs an autonomous, manually
+invoked portfolio review in Saxo SIM. Discovery is open-ended: there is no fixed
+symbol universe or cap on holdings, research candidates, watchlist entries,
+regions, sectors, or sequential research batches. Deterministic validation still
+enforces long-only cash equities/ETFs, a 10% position ceiling, 15% cash floor,
+five-order limit, and 20% per-run/40% rolling-seven-day turnover ceilings.
+
+A dedicated alternative-signals scout uses current public web evidence—such as
+insider and activist filings, government awards, clinical/regulatory events,
+short interest and positioning, physical-economy data, hiring/product activity,
+and attention anomalies—to surface less-obvious company-specific candidates.
+Signals require primary-source confirmation, publication-lag tracking, an exact
+issuer mapping, and a plausible economic mechanism. Broad beta can still win,
+but only after this differentiated discovery gate is documented.
+
+```console
+python scripts/run_investment_bot.py
+```
+
+The launcher selects a Luna-compatible Codex binary, verifies login, pins the
+parent and configured researchers to `gpt-5.6-luna` with medium reasoning, and
+enables execution only for the child process. It prints timestamped prompts,
+activity, progress, and conclusions to the terminal and mirrors sanitized lines
+to `investbot.log`. The agent executor refuses live
+endpoints regardless of general CLI configuration. Generated run artifacts stay
+local under `agent/runs/` and are never committed automatically. A timestamped,
+one-line conclusion for every completed, blocked, or failed review is appended to
+the local `investbot.log`; duplicate run entries and sensitive-looking content are
+rejected.
+
+Useful lower-level commands:
+
+```console
+saxo-cli --env sim chart SPY --horizon 1440 --count 120 --json
+saxo-cli --env sim agent snapshot --json
+saxo-cli --env sim agent performance --json
+saxo-cli --env sim agent validate agent/runs/RUN_ID/plan.json --json
+saxo-cli --env sim agent execute agent/runs/RUN_ID/plan.json --execute --json
+```
+
 See [docs/CLI.md](docs/CLI.md) for colored command examples, JSON output, exit
 codes, and platform-specific credential storage locations.
 

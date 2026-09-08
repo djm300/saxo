@@ -7,7 +7,18 @@ import logging
 import os
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
+from shared.agent import (
+    AgentPlanError,
+    chart_payload,
+    execute_plan,
+    load_mandate,
+    portfolio_performance,
+    public_snapshot,
+    public_validation,
+    read_json,
+)
 from shared.client import AuthenticationError, RateLimitError, SaxoAPIError
 from shared.domain import (
     first,
@@ -53,6 +64,23 @@ def parse_args(argv=None):
     p = sub.add_parser("quote")
     p.add_argument("symbol")
     p.add_argument("--json", action="store_true", dest="json_output")
+    chart = sub.add_parser("chart", help="Get Saxo OHLCV chart samples")
+    chart.add_argument("symbol")
+    chart.add_argument("--horizon", type=int, default=1440)
+    chart.add_argument("--count", type=int, default=120)
+    chart.add_argument("--json", action="store_true", dest="json_output")
+    agent = sub.add_parser("agent", help="Run deterministic SIM portfolio-agent operations")
+    agent_sub = agent.add_subparsers(dest="agent_action", required=True)
+    for action in ("snapshot", "performance"):
+        command = agent_sub.add_parser(action)
+        command.add_argument("--json", action="store_true", dest="json_output")
+    validate = agent_sub.add_parser("validate")
+    validate.add_argument("plan")
+    validate.add_argument("--json", action="store_true", dest="json_output")
+    execute = agent_sub.add_parser("execute")
+    execute.add_argument("plan")
+    execute.add_argument("--execute", action="store_true")
+    execute.add_argument("--json", action="store_true", dest="json_output")
     order = sub.add_parser("order")
     order_sub = order.add_subparsers(dest="order_action", required=True)
     place = order_sub.add_parser("place", help="Preview or place a market/limit order")
@@ -214,6 +242,32 @@ def run(args, config, client):
         return normalize_quote(
             raw, first(match, "Symbol", default=args.symbol), first(match, "Currency")
         )
+    if args.command == "chart":
+        payload = chart_payload(client, args.symbol, args.horizon, args.count)
+        payload["environment"] = env
+        return payload
+    if args.command == "agent":
+        if not config.simulation_mode:
+            raise AgentPlanError("The portfolio agent is hard-coded to Saxo SIM.")
+        mandate = load_mandate(Path("agent") / "mandate.json")
+        if args.agent_action == "snapshot":
+            return public_snapshot(client)
+        if args.agent_action == "performance":
+            return portfolio_performance(client, mandate)
+        plan = read_json(args.plan)
+        if plan is None:
+            raise AgentPlanError(f"Plan not found: {args.plan}")
+        if args.agent_action == "validate" or not args.execute:
+            result = public_validation(client, plan, mandate)
+            result["will_execute"] = False
+            return result
+        return execute_plan(
+            client,
+            plan,
+            mandate,
+            simulation_mode=config.simulation_mode,
+            trading_enabled=config.trading_enabled,
+        )
     if args.command == "order":
         if args.order_action == "place":
             if args.type == "limit" and args.limit is None:
@@ -278,7 +332,8 @@ def main(argv=None):
     try:
         config = load_runtime_config(args.params, environment=args.env)
         if getattr(config, "trading_enabled", False):
-            logging.warning("WARNING: TRADING_ENABLED is true. Live order execution is enabled.")
+            environment = "SIM" if config.simulation_mode else "LIVE"
+            logging.warning("WARNING: order execution is enabled for Saxo %s.", environment)
         client = create_client(config)
         if args.command == "auth":
             environment = "sim" if config.simulation_mode else "live"
@@ -314,6 +369,9 @@ def main(argv=None):
             result = run(args, config, client)
         print(json.dumps(result, indent=2, default=str))
         return 0
+    except AgentPlanError as exc:
+        code, name = 9, "agent_plan_invalid"
+        error_message = str(exc)
     except LookupError as exc:
         code, name = 3, "instrument_not_found"
         error_message = str(exc)

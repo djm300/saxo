@@ -37,7 +37,13 @@ def normalize_balance(raw, environment, currency=None):
             raw, "TotalValue", "NetEquityForMargin", "NetEquity", "TotalNetValue", default=0
         ),
         "available_for_trading": first(
-            raw, "AvailableForTrading", "AvailableCash", "CashAvailableForTrading", default=0
+            raw,
+            "AvailableForTrading",
+            "AvailableCash",
+            "CashAvailableForTrading",
+            "MarginAvailableForTrading",
+            "CollateralAvailable",
+            default=0,
         ),
         "margin_used": first(raw, "MarginUsed", "MarginUtilization", default=0),
     }
@@ -50,8 +56,25 @@ def normalize_position(raw, instrument=None, account_currency=None):
     quantity = first(base, "Amount", "Quantity", default=0)
     price = first(view, "CurrentPrice", "MarketPrice", "Price", default=0)
     market_value = first(
-        view, "MarketValue", "MarketValueInBaseCurrency", default=number(quantity) * number(price)
+        view, "MarketValueInBaseCurrency", "MarketValue", default=number(quantity) * number(price)
     )
+    if number(market_value) == 0 and number(quantity) != 0:
+        fallback_value = next(
+            (
+                view.get(key)
+                for key in (
+                    "ExposureInBaseCurrency",
+                    "Exposure",
+                    "MarketValueOpenInBaseCurrency",
+                    "MarketValueOpen",
+                )
+                if number(view.get(key)) != 0
+            ),
+            number(quantity) * number(first(base, "OpenPrice", default=0)),
+        )
+        market_value = (
+            abs(number(fallback_value)) if number(quantity) > 0 else -abs(number(fallback_value))
+        )
     return {
         "symbol": first(instrument, "Symbol", "Identifier", "Description")
         or first(base, "Symbol", "Identifier"),
@@ -65,7 +88,7 @@ def normalize_position(raw, instrument=None, account_currency=None):
         "market_value": market_value,
         "cost_price": first(view, "AverageOpenPrice", "OpenPrice", "EntryPrice", default=0),
         "unrealized_pnl": first(
-            view, "ProfitLossOnTrade", "ProfitLossOnTradeInBaseCurrency", default=0
+            view, "ProfitLossOnTradeInBaseCurrency", "ProfitLossOnTrade", default=0
         ),
         "account_id": first(base, "AccountId"),
         "side": "short" if number(quantity) < 0 else "long",

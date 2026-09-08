@@ -44,6 +44,20 @@ class TestDomain(unittest.TestCase):
         self.assertTrue(quote["is_delayed"])
         self.assertEqual(normalize_quote({"IsDelayed": False}, "X")["is_delayed"], False)
 
+    def test_position_falls_back_to_open_value_when_current_value_is_unavailable(self):
+        position = normalize_position(
+            {
+                "PositionBase": {"Amount": 3, "OpenPrice": 80, "AssetType": "Stock"},
+                "PositionView": {
+                    "CurrentPrice": 0,
+                    "MarketValueInBaseCurrency": 0,
+                    "ExposureInBaseCurrency": 0,
+                    "MarketValueOpenInBaseCurrency": -240,
+                },
+            }
+        )
+        self.assertEqual(position["market_value"], 240)
+
     def test_portfolio_summary_and_roll_analysis(self):
         positions = [
             {"symbol": "A", "asset_type": "Stock", "market_value": 100},

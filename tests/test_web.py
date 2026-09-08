@@ -147,7 +147,8 @@ class TestWeb(unittest.TestCase):
         self.assertEqual(mock_client.get_instrument_by_uic.call_count, 1)
 
     def test_dashboard_renders_ticker_pills_with_company_tooltips(self):
-        response = self.client.get("/")
+        with patch.object(web_module.saxoclient, "trading_enabled", False, create=True):
+            response = self.client.get("/")
         self.assertIn(b"ticker-pill", response.data)
         self.assertIn(b"row.company_name", response.data)
         self.assertIn(b"const tradingEnabled=false", response.data)

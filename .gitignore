@@ -11,7 +11,10 @@ out.csv
 # Local configuration/tool state
 .env
 .env.*
-.codex/
+.codex/*
+!.codex/config.toml
+!.codex/agents/
+!.codex/agents/*.toml
 .DS_Store
 
 # Python caches and environments
@@ -46,3 +49,8 @@ nosetests.xml
 .idea/
 .vscode/*.code-workspace
 MagicMock/mock.token_file/*
+agent/runs/*
+agent/state/baseline.json
+agent/state/instruments.json
+
+creds.txt

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "environment": "sim",
+  "benchmark": {
+    "symbol": "SPY:arcx",
+    "uic": 36590,
+    "asset_type": "Etf"
+  },
+  "allowed_asset_types": [
+    "Stock",
+    "Etf"
+  ],
+  "max_position_fraction": 0.1,
+  "min_cash_fraction": 0.15,
+  "max_orders_per_run": 5,
+  "max_run_turnover_fraction": 0.2,
+  "max_rolling_turnover_fraction": 0.4,
+  "max_spread_fraction": 0.01,
+  "max_precheck_drift_fraction": 0.02,
+  "plan_max_age_minutes": 360
+}

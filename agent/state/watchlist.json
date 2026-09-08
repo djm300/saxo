@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "symbol": "Allwyn:athex",
+      "status": "rejected_this_run",
+      "thesis": "Official 2026 buyback up to EUR 150m with disclosed purchases; promising capital-allocation signal, but not promoted without exact Saxo identity, quote, liquidity, valuation, and bear review.",
+      "next_review": "Reconsider only after exact Saxo resolution and fresh issuer results"
+    },
+    {
+      "symbol": "SPY:arcx",
+      "uic": 36590,
+      "asset_type": "Etf",
+      "status": "deferred_market_closed",
+      "thesis": "Diversified S&P 500 core allocation; proposed 100 shares, deferred because deterministic validation found the market closed.",
+      "next_review": "Next open-market review"
+    },
+    {
+      "symbol": "IWDA:xams",
+      "uic": 50629,
+      "asset_type": "Etf",
+      "status": "rejected_this_run",
+      "thesis": "Broad developed-market alternative; not selected due to listing ambiguity and lower displacement versus SPY.",
+      "next_review": "Reconsider only after unambiguous quote/instrument resolution"
+    }
+  ]
+}

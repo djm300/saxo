@@ -44,8 +44,44 @@ should only be used on a trusted local machine. Override the listener with
 | `portfolio` | Local concentration and asset-class summary | `saxo-cli portfolio --json` |
 | `instrument QUERY` | Resolve symbols to UIC and asset type | `saxo-cli instrument ASR --asset-type Stock` |
 | `quote SYMBOL` | Bid, ask, midpoint, last, and market state | `saxo-cli quote ASR --json` |
+| `chart SYMBOL` | Historical Saxo OHLCV samples | `saxo-cli chart SPY --horizon 1440 --count 120 --json` |
 | `orders` | Read-only order information | `saxo-cli orders --json` |
 | `order-history` | Today's order activities, newest first | `saxo-cli order-history --json` |
+
+## Portfolio agent (SIM only)
+
+The `agent` command group refuses live environments. `snapshot` returns a
+sanitized complete account view, `performance` maintains the account-versus-S&P
+baseline, `validate` runs every deterministic guardrail and Saxo pre-check, and
+`execute` refreshes state and quotes before each SIM market order.
+
+```console
+saxo-cli --env sim agent snapshot --json
+saxo-cli --env sim agent performance --json
+saxo-cli --env sim agent validate PLAN.json --json
+TRADING_ENABLED=true saxo-cli --env sim agent execute PLAN.json --execute --json
+```
+
+Validation requires exact Saxo `uic` and `asset_type` values. Execution orders
+reductions before purchases, uses `ExternalReference` for idempotency, and stops
+on the first rejected or indeterminate step.
+
+Each investment-bot run also appends a UTC-timestamped human-readable conclusion
+to the repository-root `investbot.log`. The log records the run ID, terminal
+status, order count, decision rationale, and next review trigger. It is append-only
+runtime state and remains excluded from Git.
+
+Launch a review with `python scripts/run_investment_bot.py`. The Python launcher
+streams timestamped prompts, activity, progress, and conclusions to the terminal
+and mirrors sanitized event summaries to the same append-only log. It never logs
+raw Saxo preflight responses or Codex tool payloads.
+
+The autonomous workflow includes a web-based alternative-signals lane covering
+public filings, procurement, scientific/regulatory events, positioning, physical
+economy, operating activity, and attention data. Promoted observations are kept
+in `agent/state/signals.json` with timing, lag, baseline, issuer mapping,
+confirmation, disconfirmation, and expiry metadata. Alternative signals guide
+research only; they do not weaken the deterministic SIM execution controls.
 
 ## Order previews and execution
 

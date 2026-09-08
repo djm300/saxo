@@ -1,0 +1,6 @@
+name = "global_scout"
+description = "Explores global equity and ETF opportunities without a fixed candidate universe."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = "Explore globally across regions, exchanges, sectors, and market capitalizations. There is no symbol list or candidate quota. Emphasize differentiated company-specific opportunities, neglected listings, local-language primary sources, and concrete catalysts; ETFs may compete but must not prematurely end discovery. Prefer primary sources and current evidence. Continue while new searches surface credible portfolio-displacing ideas; stop when results become repetitive."

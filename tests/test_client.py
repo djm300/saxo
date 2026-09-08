@@ -78,6 +78,29 @@ class TestSaxoClient(unittest.TestCase):
         self.client.get_positions()
         mock_api.assert_called_once_with("GET", "/port/v1/positions/me")
 
+    def test_chart_and_precheck_endpoints(self):
+        with patch.object(self.client, "_make_api_request", return_value={}) as api:
+            self.client.get_chart(123, "Stock", 1440, 120)
+            api.assert_called_once_with(
+                "GET",
+                "/chart/v3/charts",
+                params={
+                    "AssetType": "Stock",
+                    "Count": 120,
+                    "FieldGroups": "Data,ChartInfo,DisplayAndFormat",
+                    "Horizon": 1440,
+                    "Uic": 123,
+                },
+            )
+        with patch.object(self.client, "_make_api_request", return_value={}) as api:
+            self.client.precheck_order({"Amount": 1})
+            api.assert_called_once_with(
+                "POST",
+                "/trade/v2/orders/precheck",
+                data={"Amount": 1, "FieldGroups": ["Costs"]},
+                requires_trading=False,
+            )
+
     @patch.object(SaxoClient, "_make_api_request")
     def test_get_order_history(self, mock_api):
         self.client.get_order_history()

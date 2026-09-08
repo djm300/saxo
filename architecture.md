@@ -41,6 +41,17 @@ This is the single configuration boundary. It loads environment variables,
 platform-specific token path; creates clients; and owns the process-level
 authentication session.
 
+### Portfolio agent
+
+`shared/agent.py` is the deterministic boundary between model research and Saxo
+execution. It builds sanitized snapshots, resolves chart/benchmark data,
+validates typed plans against `agent/mandate.json`, performs order pre-checks in
+account currency, tracks rolling turnover from append-only receipts, and rejects
+all execution outside SIM. The repository skill under
+`.agents/skills/saxo-investment-bot/` owns research orchestration; the model
+cannot bypass the executor's asset, cash, concentration, quote, or turnover
+checks.
+
 ### Authentication lifecycle
 
 Authentication has one owner per CLI process: `AuthenticationSession` in

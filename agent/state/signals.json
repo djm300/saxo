@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "signals": [
+    {
+      "observed_at":"2026-08-20T10:55:00Z",
+      "source_published_at":"2026-06-17",
+      "source_url":"https://www.allwyn.com/regulatory-announcements/commencement-of-150-million-share-buyback-programme-and-notification-of-the-purchase-of-companys-own-shares",
+      "publication_lag":"Observed in current review; issuer announcement dated 2026-06-17",
+      "observation":"Allwyn announced a buyback of up to EUR 150m and subsequently disclosed purchases, including 914,909 shares for EUR 12.6m during 2026-06-22 to 2026-06-26.",
+      "issuer_security_mapping":"Allwyn AG, Euronext Athens candidate; exact Saxo identity not confirmed",
+      "economic_transmission":"Share-count reduction can support per-share value if cash generation and leverage remain sound.",
+      "freshness":"medium",
+      "surprise":"medium",
+      "persistence":"ongoing programme",
+      "confidence":"medium",
+      "independent_confirmation":"Euronext Athens announcement listing and issuer transaction disclosure.",
+      "benign_explanation":"Buyback may primarily serve treasury, incentives, or capital-structure management rather than undervaluation.",
+      "manipulation_risk":"Low-to-medium; regulated issuer disclosure but buyback size can be headline-sensitive.",
+      "crowding_risk":"Unknown",
+      "disconfirming_evidence":"No completed Saxo quote/identity/liquidity and no completed valuation displacement case.",
+      "catalyst_horizon":"Next buyback disclosure and next results",
+      "invalidation_condition":"Programme pauses, leverage worsens, or exact Saxo identity remains ambiguous.",
+      "expiry_recheck":"Next open-market review",
+      "status":"rejected"
+    }
+  ]
+}

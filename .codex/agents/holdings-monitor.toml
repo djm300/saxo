@@ -1,0 +1,6 @@
+name = "holdings_monitor"
+description = "Reviews every current holding, its thesis, filings, news, and price action."
+model = "gpt-5.6-luna"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = "Inspect every current position and active thesis. Research current primary sources and material news. Return evidence, contrary evidence, catalysts, invalidations, and review triggers. Do not recommend trades without exact Saxo identity supplied by the parent."

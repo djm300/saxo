@@ -221,13 +221,15 @@ class SaxoClient:
     #########################
     # API methods
     #########################
-    def _make_api_request(self, method, endpoint, data=None, params=None):
+    def _make_api_request(self, method, endpoint, data=None, params=None, requires_trading=None):
         """
         Helper method to make API requests.
         Handles base URL, authorization headers, and response parsing.
         """
         method = method.upper()
-        if method != "GET" and not self.trading_enabled:
+        if requires_trading is None:
+            requires_trading = method != "GET"
+        if requires_trading and not self.trading_enabled:
             raise PermissionError(
                 "Trading is disabled. Set TRADING_ENABLED=true and use --execute."
             )
@@ -254,9 +256,7 @@ class SaxoClient:
         }
 
         try:
-            response = _http2_client.request(
-                method, url, headers=headers, json=data, params=params
-            )
+            response = _http2_client.request(method, url, headers=headers, json=data, params=params)
             # logger.debug(f"API Request: {method} {url} - Status Code: {response.status_code}")
             # logger.debug(f"Headers: {headers}   Data: {data}   Params: {params}")
             # logger.debug(f"Response Text: {response.text}")
@@ -336,6 +336,29 @@ class SaxoClient:
         if account_key:
             params["AccountKey"] = account_key
         return self._make_api_request("GET", "/trade/v1/infoprices", params=params)
+
+    def get_chart(self, uic, asset_type="Stock", horizon=1440, count=120, account_key=None):
+        params = {
+            "AssetType": asset_type,
+            "Count": count,
+            "FieldGroups": "Data,ChartInfo,DisplayAndFormat",
+            "Horizon": horizon,
+            "Uic": uic,
+        }
+        if account_key:
+            params["AccountKey"] = account_key
+        return self._make_api_request("GET", "/chart/v3/charts", params=params)
+
+    def precheck_order(self, order):
+        """Run Saxo's read-permission order pre-check without enabling writes."""
+        request = dict(order)
+        request.setdefault("FieldGroups", ["Costs"])
+        return self._make_api_request(
+            "POST",
+            "/trade/v2/orders/precheck",
+            data=request,
+            requires_trading=False,
+        )
 
     def place_order(self, order):
         request = dict(order)

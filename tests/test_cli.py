@@ -93,6 +93,13 @@ class TestServeLifecycle(unittest.TestCase):
         args = parse_args(["orders", "--history"])
         self.assertTrue(args.history)
 
+    def test_chart_and_agent_commands_are_available(self):
+        chart = parse_args(["chart", "SPY", "--horizon", "1440", "--count", "120"])
+        self.assertEqual((chart.command, chart.symbol, chart.count), ("chart", "SPY", 120))
+        execute = parse_args(["--env", "sim", "agent", "execute", "plan.json", "--execute"])
+        self.assertEqual(execute.agent_action, "execute")
+        self.assertTrue(execute.execute)
+
     @patch("cli.saxocli.AuthenticationSession")
     @patch("cli.saxocli.create_client")
     @patch("cli.saxocli.load_runtime_config")
