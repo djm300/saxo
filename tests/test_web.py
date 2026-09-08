@@ -298,6 +298,7 @@ class TestWeb(unittest.TestCase):
         template = Path("web/templates/positions.html").read_text(encoding="utf-8")
         self.assertIn("if(refreshData)await refresh();await updateStatus()", template)
         self.assertIn("postAction('/api/auth/refresh',{},button,'Token refreshed.',false)", template)
+        self.assertIn(".status>span{display:inline-flex;align-items:center", template)
 
     def test_buy_position_rejects_trading_when_disabled(self):
         client = web_module.saxoclient
