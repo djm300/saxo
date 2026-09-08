@@ -206,8 +206,13 @@ refresh action and, when trading is enabled, €1,000 market buys and sell-all
 market orders. It has no login flow of its own. Normal mode prints a URL
 protected by a generated `?secret=...` value;
 `SAXO_WEB_SECRET` supplies a stable value. `saxo-cli serve --no-secret` disables
-this check and enables Flask hot reload for trusted local testing. The older
-`--dev` flag remains equivalent.
+this check and enables Flask hot reload for trusted local testing. It can be
+placed before or after `serve`; the older `--dev` flag remains equivalent.
+
+```bash
+saxo-cli --no-secret serve
+saxo-cli serve --no-secret
+```
 
 It exposes routes for:
 

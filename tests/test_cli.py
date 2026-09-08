@@ -88,6 +88,7 @@ class TestServeLifecycle(unittest.TestCase):
         self.assertEqual(args.command, "serve")
         self.assertFalse(args.no_secret)
         self.assertTrue(parse_args(["serve", "--no-secret"]).no_secret)
+        self.assertTrue(parse_args(["--no-secret", "serve"]).no_secret)
         self.assertEqual(args.host, "127.0.0.1")
         self.assertEqual(args.port, 5000)
 

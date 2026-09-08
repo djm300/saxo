@@ -37,6 +37,11 @@ def parse_args(argv=None):
     parser.add_argument("--params", default="params.json")
     parser.add_argument("--verbose", action="store_true")
     parser.add_argument("--json", action="store_true", dest="json_output")
+    parser.add_argument(
+        "--no-secret",
+        action="store_true",
+        help="Disable the web secret and enable hot reload for local serve testing",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("account", "balances", "portfolio", "positions", "orders"):
         p = sub.add_parser(name)
@@ -122,6 +127,7 @@ def parse_args(argv=None):
     serve.add_argument(
         "--no-secret",
         action="store_true",
+        default=argparse.SUPPRESS,
         help="Disable the web secret and enable hot reload (local testing only)",
     )
     return parser.parse_args(argv)

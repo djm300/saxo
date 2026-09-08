@@ -33,7 +33,7 @@ containing a generated `?secret=...` value; clients must retain that query
 parameter on dashboard API requests. Set `SAXO_WEB_SECRET` for a stable secret.
 `saxo-cli serve --no-secret` disables the secret and enables Flask hot reload,
 so it should only be used on a trusted local machine. The legacy `--dev` flag
-is equivalent. Override the listener with
+is equivalent. The option may appear before or after `serve`. Override the listener with
 `--host` and `--port` when needed.
 
 | Command | Purpose | Example |
