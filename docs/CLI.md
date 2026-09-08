@@ -31,8 +31,9 @@ saxo-cli serve
 CLI commands, then starts the web server on `127.0.0.1:5000`. It prints a URL
 containing a generated `?secret=...` value; clients must retain that query
 parameter on dashboard API requests. Set `SAXO_WEB_SECRET` for a stable secret.
-`saxo-cli serve --dev` disables the secret and enables Flask hot reload, so it
-should only be used on a trusted local machine. Override the listener with
+`saxo-cli serve --no-secret` disables the secret and enables Flask hot reload,
+so it should only be used on a trusted local machine. The legacy `--dev` flag
+is equivalent. Override the listener with
 `--host` and `--port` when needed.
 
 | Command | Purpose | Example |

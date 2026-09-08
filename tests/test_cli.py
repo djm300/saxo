@@ -86,6 +86,8 @@ class TestServeLifecycle(unittest.TestCase):
     def test_serve_parser_defaults_to_local_port(self):
         args = parse_args(["serve"])
         self.assertEqual(args.command, "serve")
+        self.assertFalse(args.no_secret)
+        self.assertTrue(parse_args(["serve", "--no-secret"]).no_secret)
         self.assertEqual(args.host, "127.0.0.1")
         self.assertEqual(args.port, 5000)
 

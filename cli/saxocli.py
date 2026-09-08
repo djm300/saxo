@@ -119,6 +119,11 @@ def parse_args(argv=None):
     serve.add_argument(
         "--dev", action="store_true", help="Disable the web secret (local development only)"
     )
+    serve.add_argument(
+        "--no-secret",
+        action="store_true",
+        help="Disable the web secret and enable hot reload (local testing only)",
+    )
     return parser.parse_args(argv)
 
 
@@ -360,7 +365,7 @@ def main(argv=None):
                 "runtime_config": config,
                 "host": args.host,
                 "port": args.port,
-                "dev": args.dev,
+                "dev": args.dev or args.no_secret,
             }
             return startSaxoServer(**server_args) or 0
         else:

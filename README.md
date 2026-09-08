@@ -205,8 +205,9 @@ orders, today's order history, and token lifetimes. It supports an explicit toke
 refresh action and, when trading is enabled, €1,000 market buys and sell-all
 market orders. It has no login flow of its own. Normal mode prints a URL
 protected by a generated `?secret=...` value;
-`SAXO_WEB_SECRET` supplies a stable value. `saxo-cli serve --dev` disables this
-check and enables hot reload for trusted local development.
+`SAXO_WEB_SECRET` supplies a stable value. `saxo-cli serve --no-secret` disables
+this check and enables Flask hot reload for trusted local testing. The older
+`--dev` flag remains equivalent.
 
 It exposes routes for:
 
