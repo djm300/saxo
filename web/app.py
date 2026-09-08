@@ -8,6 +8,7 @@ import secrets
 import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal, ROUND_DOWN
 from math import isfinite
 from pathlib import Path
 
@@ -573,7 +574,17 @@ def buy_position():
     if not account_key:
         _log_order_activity("buy_rejected", reason="missing_account_key", uic=uic)
         return jsonify({"error": "The position has no account key."}), 400
-    amount = 1000.0 / price
+    # Saxo rejects quantities with more fractional digits than the account's
+    # configured precision. Equity fractional trading is expressed in
+    # hundredths, so round down to two decimals and never overspend the target.
+    amount = float(
+        (Decimal("1000") / Decimal(str(price))).quantize(
+            Decimal("0.01"), rounding=ROUND_DOWN
+        )
+    )
+    if amount <= 0:
+        _log_order_activity("buy_rejected", reason="amount_rounds_to_zero", price=price)
+        return jsonify({"error": "The current price is too high for a fractional €1,000 buy."}), 400
     order = {
         "AccountKey": account_key,
         "Amount": amount,
