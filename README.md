@@ -224,8 +224,9 @@ It exposes routes for:
 
 The dashboard is a single-column view. Position and order rows display the
 instrument's true company name (truncated to 20 characters, with the ticker in
-the tooltip). Buy orders use `1000 / current_price` shares and are submitted as
-market orders. All order mutations remain disabled unless `TRADING_ENABLED=true`.
+the tooltip). Buy orders use the whole-share floor of `1000 / current_price` and
+are submitted as market orders. All order mutations remain disabled unless
+`TRADING_ENABLED=true`.
 
 Position instrument names are cached for five days in `instrument-cache.json`
 beside the configured token file. The file is shared safely by concurrent web

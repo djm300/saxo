@@ -267,7 +267,7 @@ class TestWeb(unittest.TestCase):
             }
         )
 
-    def test_buy_position_rounds_fractional_amount_to_saxo_precision(self):
+    def test_buy_position_rounds_amount_down_to_whole_shares(self):
         client = web_module.saxoclient
         with (
             patch.object(client, "_is_authenticated", return_value=True),
@@ -279,7 +279,7 @@ class TestWeb(unittest.TestCase):
                 json={"uic": 7, "current_price": 73.17, "account_key": "A"},
             )
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(place_order.call_args.args[0]["Amount"], 13.66)
+        self.assertEqual(place_order.call_args.args[0]["Amount"], 13)
 
     def test_manual_token_refresh_calls_client_and_logs_success(self):
         client = web_module.saxoclient

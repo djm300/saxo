@@ -30,8 +30,9 @@ JSON suitable for shell scripts and agents. It contains no OAuth or HTTP details
 `web/app.py` provides the Flask dashboard for positions, working orders, today's
 order history, token lifetime status, manual token refresh, and explicit market
 orders. The UI is single-column and uses cached company metadata for compact
-instrument labels. A buy request computes `1000 / current_price` shares, while a
-sell request uses the complete current position amount. `saxo-cli serve` authenticates and configures the shared `SaxoClient`,
+instrument labels. A buy request computes the whole-share floor of
+`1000 / current_price`, while a sell request uses the complete current position
+amount. `saxo-cli serve` authenticates and configures the shared `SaxoClient`,
 then injects it into the web server. The web layer has no independent OAuth or
 launch path. Requests require the generated/configured URL secret unless
 `serve --dev` is used.

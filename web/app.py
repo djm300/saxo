@@ -574,12 +574,11 @@ def buy_position():
     if not account_key:
         _log_order_activity("buy_rejected", reason="missing_account_key", uic=uic)
         return jsonify({"error": "The position has no account key."}), 400
-    # Saxo rejects quantities with more fractional digits than the account's
-    # configured precision. Equity fractional trading is expressed in
-    # hundredths, so round down to two decimals and never overspend the target.
-    amount = float(
+    # The dashboard deliberately submits whole shares. Round down so the
+    # approximate €1,000 target is never exceeded and Saxo receives an integer.
+    amount = int(
         (Decimal("1000") / Decimal(str(price))).quantize(
-            Decimal("0.01"), rounding=ROUND_DOWN
+            Decimal("1"), rounding=ROUND_DOWN
         )
     )
     if amount <= 0:
